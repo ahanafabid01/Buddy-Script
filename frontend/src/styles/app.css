@@ -825,6 +825,12 @@
   cursor: pointer;
 }
 
+.reaction-summary-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .reaction-summary-trigger.is-clickable:focus-visible {
   outline: 2px solid #2f78d8;
   outline-offset: 3px;
@@ -832,10 +838,13 @@
 }
 
 .post-reaction-count-text {
-  margin-left: 10px;
+  margin-left: 0;
+  display: inline-flex;
+  align-items: center;
   color: #43566b;
   font-size: 14px;
   font-weight: 600;
+  line-height: 1.2;
   white-space: nowrap;
 }
 
