@@ -771,6 +771,127 @@
   color: #4b5c70;
 }
 
+._dark_wrapper .composer-audience-picker.is-public,
+._dark_wrapper .composer-audience-picker.is-private {
+  background: #16304a;
+}
+
+._dark_wrapper .composer-audience-label {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+._dark_wrapper .composer-audience-select {
+  color: #d5e8ff;
+}
+
+._dark_wrapper .composer-preview-card,
+._dark_wrapper .attachment-preview {
+  background: linear-gradient(180deg, #132b44 0%, #0f253b 100%);
+  border-color: #2b4865;
+}
+
+._dark_wrapper .composer-preview-thumb,
+._dark_wrapper .attachment-preview-image {
+  background: #0d1f33;
+  border-color: #35516f;
+}
+
+._dark_wrapper .composer-preview-name,
+._dark_wrapper .attachment-preview-name,
+._dark_wrapper .comment-author,
+._dark_wrapper .comments-history-btn,
+._dark_wrapper .comment-action-btn,
+._dark_wrapper .comment-link-btn {
+  color: var(--bg2);
+}
+
+._dark_wrapper .comment-action-btn.is-active,
+._dark_wrapper .comment-link-btn.is-active {
+  color: #7ec0ff;
+}
+
+._dark_wrapper .composer-preview-size,
+._dark_wrapper .attachment-preview-size,
+._dark_wrapper .comment-time,
+._dark_wrapper .comment-thread-text {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+._dark_wrapper .composer-clear-btn,
+._dark_wrapper .attachment-preview-remove {
+  color: #ff8a8a;
+}
+
+._dark_wrapper .composer-form-error,
+._dark_wrapper .attachment-error-text {
+  color: #ff8f8f;
+}
+
+._dark_wrapper .comment-composer-input-wrap {
+  background: #122b44;
+  border-color: #2a4a68;
+}
+
+._dark_wrapper .comment-composer-input-wrap:focus-within {
+  background: #163551;
+  border-color: #4e7ba5;
+}
+
+._dark_wrapper .comment-composer-textarea,
+._dark_wrapper .reply-composer-textarea {
+  color: var(--bg2);
+}
+
+._dark_wrapper .comment-tool-btn {
+  color: #9fb9d4;
+}
+
+._dark_wrapper .comment-tool-btn:hover {
+  color: #d7e9ff;
+}
+
+._dark_wrapper .comment-submit-btn-main:disabled {
+  background: #486886;
+  border-color: #486886;
+}
+
+._dark_wrapper .comment-bubble {
+  background: #132b43;
+}
+
+._dark_wrapper .comment-thread.has-parent {
+  border-left-color: #2f4a65;
+}
+
+._dark_wrapper .comment-view-replies-btn {
+  color: #8bc4ff;
+}
+
+._dark_wrapper .reply-composer {
+  background: #0f2438;
+  border-color: #2d4863;
+}
+
+._dark_wrapper .reply-composer-input-wrap {
+  background: #16314d;
+  border-color: #2f4d69;
+}
+
+._dark_wrapper .reply-composer-input-wrap:focus-within {
+  border-color: #4e7ba5;
+}
+
+._dark_wrapper .reaction-picker {
+  background: #0f2438;
+  border-color: #2a445f;
+  box-shadow: 0 12px 28px rgba(4, 10, 16, 0.5);
+}
+
+._dark_wrapper .reaction-option:hover,
+._dark_wrapper .reaction-option.is-selected {
+  background: #19334c;
+}
+
 @media only screen and (max-width: 767px) {
   .composer-preview-card {
     max-width: none;
