@@ -897,6 +897,10 @@
 }
 
 @media only screen and (max-width: 767px) {
+  ._feed_inner_timeline_cooment_area {
+    display: none;
+  }
+
   .composer-preview-card {
     max-width: none;
   }
@@ -937,6 +941,11 @@
 
   .comment-thread {
     margin-left: calc(var(--thread-depth) * 12px);
+  }
+
+  .comments-history-btn,
+  ._feed_inner_timeline_cooment_area .comment-thread {
+    display: none;
   }
 
   .comment-attachment-row,
