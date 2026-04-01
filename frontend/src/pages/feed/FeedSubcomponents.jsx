@@ -438,7 +438,14 @@ function ReactionAction({
   );
 }
 
-function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommentLike }) {
+function CommentThread({
+  postId,
+  comment,
+  depth,
+  onCreateComment,
+  onToggleCommentLike,
+  onOpenCommentReactions,
+}) {
   const [showReplyInput, setShowReplyInput] = useState(false);
   const [replyContent, setReplyContent] = useState("");
   const [replyImageFile, setReplyImageFile] = useState(null);
@@ -452,6 +459,8 @@ function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommen
     ? comment.replyCount
     : (comment.replies || []).length;
   const commentTime = formatTimeAgo(comment.createdAt);
+  const commentReactionCount = Number(comment.likes?.count || 0);
+  const canOpenCommentReactions = commentReactionCount > 0 && typeof onOpenCommentReactions === "function";
 
   useEffect(() => {
     setCommentReaction(comment.likes?.viewerReaction || null);
@@ -477,6 +486,11 @@ function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommen
     }
     await onToggleCommentLike(comment.id, "like");
     setCommentReaction("like");
+  };
+
+  const handleOpenCommentReactions = () => {
+    if (!canOpenCommentReactions) return;
+    onOpenCommentReactions(comment.id);
   };
 
   const handleReplySubmit = async (event) => {
@@ -573,8 +587,26 @@ function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommen
             <button type="button" className="comment-link-btn" onClick={() => setShowReplyInput((previous) => !previous)}>
               Reply
             </button>
-            <span className="comment-time">{commentTime}</span>
-            <LikerAvatarStack likedBy={comment.likes?.likedBy || []} totalCount={comment.likes?.count || 0} size="sm" />
+            <div className="comment-thread-meta-side">
+              {commentReactionCount > 0 ? (
+                <button
+                  type="button"
+                  className={`comment-reaction-summary-btn ${canOpenCommentReactions ? "is-clickable" : ""}`}
+                  onClick={handleOpenCommentReactions}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      handleOpenCommentReactions();
+                    }
+                  }}
+                  aria-label={canOpenCommentReactions ? "Open comment reactions" : undefined}
+                >
+                  <LikerAvatarStack likedBy={comment.likes?.likedBy || []} totalCount={commentReactionCount} size="sm" />
+                  <span className="comment-reaction-count-text">{commentReactionCount}</span>
+                </button>
+              ) : null}
+              <span className="comment-time">{commentTime}</span>
+            </div>
           </div>
           {showReplyInput ? (
             <form onSubmit={handleReplySubmit} className="reply-composer">
@@ -637,6 +669,7 @@ function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommen
               depth={depth + 1}
               onCreateComment={onCreateComment}
               onToggleCommentLike={onToggleCommentLike}
+              onOpenCommentReactions={onOpenCommentReactions}
             />
           ))}
         </div>
@@ -653,6 +686,7 @@ export function TimelinePost({
   onToggleCommentLike,
   onOpenComments,
   onOpenReactions,
+  onOpenCommentReactions,
   initialVisibleTopLevelComments = 2,
   preferTextOnlyCollapsed = false,
 }) {
@@ -950,7 +984,15 @@ export function TimelinePost({
         ) : null}
 
         {visibleComments.map((comment) => (
-          <CommentThread key={comment.id} postId={post.id} comment={comment} depth={0} onCreateComment={onCreateComment} onToggleCommentLike={onToggleCommentLike} />
+          <CommentThread
+            key={comment.id}
+            postId={post.id}
+            comment={comment}
+            depth={0}
+            onCreateComment={onCreateComment}
+            onToggleCommentLike={onToggleCommentLike}
+            onOpenCommentReactions={onOpenCommentReactions}
+          />
         ))}
       </div>
     </div>

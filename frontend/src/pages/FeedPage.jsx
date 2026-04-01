@@ -377,6 +377,10 @@ export default function FeedPage() {
     navigate(`/feed/post/${postId}/reactions`);
   };
 
+  const handleOpenCommentReactions = (commentId) => {
+    navigate(`/feed/comment/${commentId}/reactions`);
+  };
+
   const handleComposerPhotoClick = () => {
     postImageInputRef.current?.click();
   };
@@ -943,6 +947,7 @@ export default function FeedPage() {
                           onToggleCommentLike={handleToggleCommentLike}
                           onOpenComments={handleOpenPostComments}
                           onOpenReactions={handleOpenPostReactions}
+                          onOpenCommentReactions={handleOpenCommentReactions}
                           initialVisibleTopLevelComments={1}
                           preferTextOnlyCollapsed
                         />

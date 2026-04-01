@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import FeedPage from "./pages/FeedPage";
 import LoginPage from "./pages/LoginPage";
+import CommentReactionsPage from "./pages/CommentReactionsPage";
 import PostCommentsPage from "./pages/PostCommentsPage";
 import PostReactionsPage from "./pages/PostReactionsPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -42,6 +43,7 @@ export default function App() {
       />
       <Route element={<ProtectedRoute />}>
         <Route path="/feed" element={<FeedPage />} />
+        <Route path="/feed/comment/:commentId/reactions" element={<CommentReactionsPage />} />
         <Route path="/feed/post/:postId" element={<PostCommentsPage />} />
         <Route path="/feed/post/:postId/reactions" element={<PostReactionsPage />} />
       </Route>

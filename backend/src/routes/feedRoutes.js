@@ -12,6 +12,7 @@ const {
   createPost,
   togglePostLike,
   getPostReactions,
+  getCommentReactions,
   createComment,
   toggleCommentLike,
 } = require("../services/feedService");
@@ -203,6 +204,16 @@ router.post("/posts/:postId/comments", upload.single("image"), async (req, res, 
     return res.status(201).json({ comment });
   } catch (error) {
     await removeFileIfExists(req.file?.path);
+    return next(error);
+  }
+});
+
+router.get("/comments/:commentId/reactions", async (req, res, next) => {
+  try {
+    const commentId = parsePositiveInt(req.params.commentId, "commentId");
+    const data = await getCommentReactions(pool, req.auth.userId, commentId);
+    return res.json(data);
+  } catch (error) {
     return next(error);
   }
 });

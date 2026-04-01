@@ -678,6 +678,47 @@ async function getPostReactions(client, viewerId, postId) {
   };
 }
 
+async function getCommentReactions(client, viewerId, commentId) {
+  await assertCommentReadable(client, commentId, viewerId);
+
+  const { rows } = await client.query(
+    `
+      SELECT
+        cl.user_id,
+        cl.created_at,
+        cl.reaction_type,
+        u.first_name,
+        u.last_name
+      FROM comment_likes cl
+      JOIN users u ON u.id = cl.user_id
+      WHERE cl.comment_id = $1
+      ORDER BY cl.created_at DESC
+    `,
+    [commentId],
+  );
+
+  const reactionCounts = emptyReactionCounts();
+  for (const row of rows) {
+    const reactionType = SUPPORTED_REACTIONS.includes(row.reaction_type)
+      ? row.reaction_type
+      : "like";
+    reactionCounts[reactionType] += 1;
+  }
+
+  return {
+    totalCount: rows.length,
+    reactionCounts,
+    reactions: rows.map((row) => ({
+      userId: Number.parseInt(row.user_id, 10),
+      fullName: `${row.first_name} ${row.last_name}`.trim(),
+      reactionType: SUPPORTED_REACTIONS.includes(row.reaction_type)
+        ? row.reaction_type
+        : "like",
+      createdAt: new Date(row.created_at).toISOString(),
+    })),
+  };
+}
+
 async function togglePostLike(client, postId, viewerId, reactionType = "like") {
   await assertPostReadable(client, postId, viewerId);
 
@@ -1006,6 +1047,7 @@ module.exports = {
   createPost,
   togglePostLike,
   getPostReactions,
+  getCommentReactions,
   createComment,
   toggleCommentLike,
 };

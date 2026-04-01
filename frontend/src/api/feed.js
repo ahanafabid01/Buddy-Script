@@ -53,6 +53,10 @@ export function getFeedPostReactions(postId) {
   return apiRequest(`/feed/posts/${postId}/reactions`);
 }
 
+export function getFeedCommentReactions(commentId) {
+  return apiRequest(`/feed/comments/${commentId}/reactions`);
+}
+
 export function createFeedComment(postId, { content, parentCommentId = null, imageFile = null }) {
   if (imageFile) {
     const formData = new FormData();

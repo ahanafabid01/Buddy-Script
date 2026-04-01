@@ -219,6 +219,10 @@ export default function PostCommentsPage() {
     navigate(`/feed/post/${targetPostId}/reactions`);
   };
 
+  const handleOpenCommentReactions = (commentId) => {
+    navigate(`/feed/comment/${commentId}/reactions`);
+  };
+
   return (
     <div className="post-comments-page">
       <header className="post-comments-header">
@@ -243,6 +247,7 @@ export default function PostCommentsPage() {
             onToggleCommentLike={handleToggleCommentLike}
             onOpenComments={() => {}}
             onOpenReactions={handleOpenPostReactions}
+            onOpenCommentReactions={handleOpenCommentReactions}
           />
         ) : null}
       </main>
