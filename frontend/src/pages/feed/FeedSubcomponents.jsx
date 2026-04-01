@@ -243,6 +243,10 @@ function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommen
   const [showReplyInput, setShowReplyInput] = useState(false);
   const [replyContent, setReplyContent] = useState("");
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
+  const [showReplies, setShowReplies] = useState(true);
+
+  const replyCount = (comment.replies || []).length;
+  const commentTime = formatTimeAgo(comment.createdAt);
 
   const handleReplySubmit = async (event) => {
     event.preventDefault();
@@ -264,57 +268,66 @@ function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommen
   };
 
   return (
-    <div className="comment-thread" style={{ marginLeft: `${depth * 20}px` }}>
-      <div className="_feed_inner_comment_box_content">
-        <div className="_feed_inner_comment_box_content_image">
-          <img src="/assets/images/comment_img.png" alt="" className="_comment_img" />
+    <div className={`comment-thread ${depth > 0 ? "has-parent" : ""}`} style={{ "--thread-depth": depth }}>
+      <div className="comment-thread-item">
+        <div className="comment-avatar-wrap">
+          <img src="/assets/images/comment_img.png" alt="" className="comment-avatar" />
         </div>
-        <div className="_feed_inner_comment_box_content_txt comment-thread-body">
-          <p className="_feed_inner_timeline_post_box_para">
-            <strong>{comment.author?.fullName || "Unknown"}</strong> . {formatTimeAgo(comment.createdAt)}
-          </p>
-          <p className="comment-thread-text">{comment.content}</p>
-          <p className="_feed_inner_timeline_post_box_para" title={likedByText(comment.likes?.likedBy)}>
-            Liked by: {likedByText(comment.likes?.likedBy)}
-          </p>
-          <div className="comment-thread-actions">
+        <div className="comment-thread-body">
+          <div className="comment-bubble" title={likedByText(comment.likes?.likedBy)}>
+            <p className="comment-author">{comment.author?.fullName || "Unknown"}</p>
+            <p className="comment-thread-text">{comment.content}</p>
+          </div>
+          <div className="comment-thread-meta">
             <button
               type="button"
-              className={`comment-action-btn ${comment.likes?.likedByViewer ? "is-active" : ""}`}
+              className={`comment-link-btn ${comment.likes?.likedByViewer ? "is-active" : ""}`}
               onClick={() => onToggleCommentLike(comment.id)}
             >
-              {comment.likes?.likedByViewer ? "Unlike" : "Like"} ({comment.likes?.count || 0})
+              {comment.likes?.likedByViewer ? "Unlike" : "Like"}
             </button>
-            <button type="button" className="comment-action-btn" onClick={() => setShowReplyInput((previous) => !previous)}>
+            <button type="button" className="comment-link-btn" onClick={() => setShowReplyInput((previous) => !previous)}>
               Reply
             </button>
+            <span className="comment-time">{commentTime}</span>
+            {(comment.likes?.count || 0) > 0 ? <span className="comment-like-pill">{comment.likes.count}</span> : null}
           </div>
           {showReplyInput ? (
-            <form onSubmit={handleReplySubmit} className="reply-form">
-              <textarea
-                className="form-control _comment_textarea"
-                placeholder="Write a reply"
-                value={replyContent}
-                onChange={(event) => setReplyContent(event.target.value)}
-              />
-              <button type="submit" className="comment-submit-btn" disabled={isSubmittingReply}>
-                {isSubmittingReply ? "Replying..." : "Reply"}
-              </button>
+            <form onSubmit={handleReplySubmit} className="reply-composer">
+              <textarea className="form-control _comment_textarea" placeholder="Write a reply" value={replyContent} onChange={(event) => setReplyContent(event.target.value)} />
+              <div className="reply-composer-actions">
+                <button type="button" className="comment-link-btn" onClick={() => setShowReplyInput(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="comment-submit-btn" disabled={isSubmittingReply || replyContent.trim().length === 0}>
+                  {isSubmittingReply ? "Replying..." : "Reply"}
+                </button>
+              </div>
             </form>
+          ) : null}
+
+          {replyCount > 0 ? (
+            <button type="button" className="comment-view-replies-btn" onClick={() => setShowReplies((previous) => !previous)}>
+              {showReplies ? `Hide replies (${replyCount})` : `View replies (${replyCount})`}
+            </button>
           ) : null}
         </div>
       </div>
 
-      {(comment.replies || []).map((reply) => (
-        <CommentThread
-          key={reply.id}
-          postId={postId}
-          comment={reply}
-          depth={depth + 1}
-          onCreateComment={onCreateComment}
-          onToggleCommentLike={onToggleCommentLike}
-        />
-      ))}
+      {showReplies ? (
+        <div className="comment-replies">
+          {(comment.replies || []).map((reply) => (
+            <CommentThread
+              key={reply.id}
+              postId={postId}
+              comment={reply}
+              depth={depth + 1}
+              onCreateComment={onCreateComment}
+              onToggleCommentLike={onToggleCommentLike}
+            />
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -327,9 +340,13 @@ export function TimelinePost({
 }) {
   const [commentContent, setCommentContent] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [visibleTopLevelComments, setVisibleTopLevelComments] = useState(2);
 
   const authorName = post.author?.fullName || post.author || "Unknown";
   const visibilityLabel = post.visibility === "private" ? "Private" : "Public";
+  const topLevelComments = post.comments || [];
+  const hiddenTopLevelCount = Math.max(topLevelComments.length - visibleTopLevelComments, 0);
+  const visibleComments = hiddenTopLevelCount > 0 ? topLevelComments.slice(hiddenTopLevelCount) : topLevelComments;
 
   const handleCommentSubmit = async (event) => {
     event.preventDefault();
@@ -419,36 +436,49 @@ export function TimelinePost({
       </div>
 
       <div className="_feed_inner_timeline_cooment_area">
-        <div className="_feed_inner_comment_box">
-          <form className="_feed_inner_comment_box_form" onSubmit={handleCommentSubmit}>
-            <div className="_feed_inner_comment_box_content">
-              <div className="_feed_inner_comment_box_content_image">
-                <img src="/assets/images/comment_img.png" alt="" className="_comment_img" />
+        <div className="comment-composer-wrap">
+          <form className="comment-composer" onSubmit={handleCommentSubmit}>
+            <div className="comment-composer-row">
+              <div className="comment-avatar-wrap">
+                <img src="/assets/images/comment_img.png" alt="" className="comment-avatar" />
               </div>
-              <div className="_feed_inner_comment_box_content_txt">
+              <div className="comment-composer-input-wrap">
                 <textarea
-                  className="form-control _comment_textarea"
+                  className="form-control _comment_textarea comment-composer-textarea"
                   placeholder="Write a comment"
                   value={commentContent}
                   onChange={(event) => setCommentContent(event.target.value)}
                 />
+                <div className="comment-composer-tools">
+                  <button type="button" className="comment-tool-btn" aria-label="Voice comment">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 18 18">
+                      <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 2.25a2.25 2.25 0 012.25 2.25v4.5a2.25 2.25 0 11-4.5 0V4.5A2.25 2.25 0 019 2.25zM4.5 8.25a4.5 4.5 0 009 0m-4.5 4.5V15.75m-2.25 0h4.5"/>
+                    </svg>
+                  </button>
+                  <button type="button" className="comment-tool-btn" aria-label="Attach image">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 18 18">
+                      <rect width="13.5" height="12" x="2.25" y="3" stroke="currentColor" strokeWidth="1.5" rx="2"/>
+                      <circle cx="6.188" cy="7.313" r="1.125" fill="currentColor"/>
+                      <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 11.25l-2.785-2.227a1.5 1.5 0 00-1.894.037l-3.029 2.599-1.16-.994a1.5 1.5 0 00-1.952.016L2.25 12.375"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
-            <button type="submit" className="comment-submit-btn" disabled={isSubmittingComment}>
-              {isSubmittingComment ? "Commenting..." : "Comment"}
+            <button type="submit" className="comment-submit-btn comment-submit-btn-main" disabled={isSubmittingComment || commentContent.trim().length === 0}>
+              {isSubmittingComment ? "Posting..." : "Post"}
             </button>
           </form>
         </div>
 
-        {(post.comments || []).map((comment) => (
-          <CommentThread
-            key={comment.id}
-            postId={post.id}
-            comment={comment}
-            depth={0}
-            onCreateComment={onCreateComment}
-            onToggleCommentLike={onToggleCommentLike}
-          />
+        {hiddenTopLevelCount > 0 ? (
+          <button type="button" className="comments-history-btn" onClick={() => setVisibleTopLevelComments(topLevelComments.length)}>
+            View {hiddenTopLevelCount} previous comment{hiddenTopLevelCount === 1 ? "" : "s"}
+          </button>
+        ) : null}
+
+        {visibleComments.map((comment) => (
+          <CommentThread key={comment.id} postId={post.id} comment={comment} depth={0} onCreateComment={onCreateComment} onToggleCommentLike={onToggleCommentLike} />
         ))}
       </div>
     </div>
