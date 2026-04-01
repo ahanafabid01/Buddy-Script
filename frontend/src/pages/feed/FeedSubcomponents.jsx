@@ -238,26 +238,6 @@ function isTextOnlyComment(comment) {
   return content.length > 0 && !comment?.imageUrl;
 }
 
-function LikerAvatarStack({ likedBy = [], totalCount = 0, size = "md" }) {
-  if (totalCount === 0) return null;
-
-  const safeLikedBy = Array.isArray(likedBy) ? likedBy : [];
-  const visible = safeLikedBy.slice(0, 3);
-  const remaining = Math.max(totalCount - visible.length, 0);
-  const overflowLabel = remaining > 99 ? "99+" : `${remaining}+`;
-
-  return (
-    <div className={`liker-avatar-stack size-${size}`} title={likedByText(safeLikedBy)}>
-      {visible.map((entry, index) => (
-        <span key={`${entry.name}-${index}`} className="liker-avatar-chip" aria-hidden="true">
-          {initialsFromName(entry.name)}
-        </span>
-      ))}
-      {remaining > 0 ? <span className="liker-avatar-chip liker-avatar-more">{overflowLabel}</span> : null}
-    </div>
-  );
-}
-
 const REACTION_OPTIONS = [
   { id: "like", glyph: "👍", label: "Like" },
   { id: "love", glyph: "❤️", label: "Love" },
@@ -267,6 +247,43 @@ const REACTION_OPTIONS = [
   { id: "sad", glyph: "😢", label: "Sad" },
   { id: "angry", glyph: "😡", label: "Angry" },
 ];
+
+const REACTION_ORDER = REACTION_OPTIONS.map((option) => option.id);
+
+function reactionGlyph(reactionType) {
+  return REACTION_OPTIONS.find((option) => option.id === reactionType)?.glyph || "👍";
+}
+
+function LikerAvatarStack({ likedBy = [], reactionCounts = null, totalCount = 0, size = "md" }) {
+  if (totalCount === 0) return null;
+
+  const safeLikedBy = Array.isArray(likedBy) ? likedBy : [];
+  const safeReactionCounts = reactionCounts && typeof reactionCounts === "object" ? reactionCounts : null;
+
+  const topReactionTypes = safeReactionCounts
+    ? REACTION_ORDER
+      .map((reactionType) => ({
+        reactionType,
+        count: Number(safeReactionCounts[reactionType] || 0),
+      }))
+      .filter((entry) => entry.count > 0)
+      .sort((a, b) => b.count - a.count)
+      .map((entry) => entry.reactionType)
+      .slice(0, 3)
+    : [...new Set(safeLikedBy.map((entry) => entry.reactionType || "like"))].slice(0, 3);
+
+  const visibleReactionTypes = topReactionTypes.length > 0 ? topReactionTypes : ["like"];
+
+  return (
+    <div className={`liker-avatar-stack size-${size}`} title={likedByText(safeLikedBy)}>
+      {visibleReactionTypes.map((reactionType, index) => (
+        <span key={`${reactionType}-${index}`} className="liker-avatar-chip liker-reaction-chip" aria-hidden="true">
+          {reactionGlyph(reactionType)}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 function findReactionById(reactionId) {
   return REACTION_OPTIONS.find((option) => option.id === reactionId) || REACTION_OPTIONS[0];
@@ -602,7 +619,12 @@ function CommentThread({
                   }}
                   aria-label={canOpenCommentReactions ? "Open comment reactions" : undefined}
                 >
-                  <LikerAvatarStack likedBy={comment.likes?.likedBy || []} totalCount={commentReactionCount} size="sm" />
+                  <LikerAvatarStack
+                    likedBy={comment.likes?.likedBy || []}
+                    reactionCounts={comment.likes?.reactionCounts || null}
+                    totalCount={commentReactionCount}
+                    size="sm"
+                  />
                   <span className="comment-reaction-count-text">{commentReactionCount}</span>
                 </button>
               ) : null}
@@ -882,7 +904,12 @@ export function TimelinePost({
           tabIndex={canOpenReactions ? 0 : undefined}
           aria-label={canOpenReactions ? "Open reactions list" : undefined}
         >
-          <LikerAvatarStack likedBy={post.likes?.likedBy || []} totalCount={post.likes?.count || 0} size="md" />
+          <LikerAvatarStack
+            likedBy={post.likes?.likedBy || []}
+            reactionCounts={post.likes?.reactionCounts || null}
+            totalCount={post.likes?.count || 0}
+            size="md"
+          />
           <span className="post-reaction-count-text">{post.likes?.count || 0} reaction{(post.likes?.count || 0) === 1 ? "" : "s"}</span>
         </div>
         <div className="_feed_inner_timeline_total_reacts_txt">

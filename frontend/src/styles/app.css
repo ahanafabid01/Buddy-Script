@@ -817,6 +817,12 @@
   box-shadow: 0 2px 8px rgba(16, 32, 50, 0.16);
 }
 
+.liker-reaction-chip {
+  font-size: 14px;
+  color: inherit;
+  background: #fff;
+}
+
 .liker-avatar-stack .liker-avatar-chip:first-child {
   margin-left: 0;
 }
@@ -1010,11 +1016,19 @@
   margin-left: -6px;
 }
 
+.liker-avatar-stack.size-sm .liker-reaction-chip {
+  font-size: 12px;
+}
+
 .liker-avatar-stack.size-md .liker-avatar-chip {
   width: 34px;
   height: 34px;
   font-size: 11px;
   margin-left: -10px;
+}
+
+.liker-avatar-stack.size-md .liker-reaction-chip {
+  font-size: 16px;
 }
 
 .liker-avatar-more {
