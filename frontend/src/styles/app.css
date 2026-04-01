@@ -336,6 +336,19 @@
   font-size: 21px;
 }
 
+._feed_inner_timeline_reaction_link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+._feed_inner_timeline_reaction_link ._reaction_svg {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+}
+
 .comment-action-btn.is-active,
 .comment-link-btn.is-active {
   color: #1f6ad1;
