@@ -265,6 +265,62 @@ function findReactionById(reactionId) {
   return REACTION_OPTIONS.find((option) => option.id === reactionId) || REACTION_OPTIONS[0];
 }
 
+const MAX_ATTACHMENT_SIZE_BYTES = 8 * 1024 * 1024;
+
+function formatFileSize(bytes) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 102.4) / 10} KB`;
+  return `${Math.round(bytes / (1024 * 102.4)) / 10} MB`;
+}
+
+function getAttachmentError(file) {
+  if (!file) return null;
+
+  if (!String(file.type || "").startsWith("image/")) {
+    return "Only image files are allowed.";
+  }
+
+  if (file.size > MAX_ATTACHMENT_SIZE_BYTES) {
+    return "Image must be 8MB or smaller.";
+  }
+
+  return null;
+}
+
+function AttachmentPreview({ file, onRemove, className = "" }) {
+  const [previewUrl, setPreviewUrl] = useState("");
+
+  useEffect(() => {
+    if (!file) {
+      setPreviewUrl("");
+      return undefined;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [file]);
+
+  if (!file || !previewUrl) return null;
+
+  return (
+    <div className={`attachment-preview ${className}`.trim()}>
+      <img src={previewUrl} alt="Selected attachment" className="attachment-preview-image" />
+      <div className="attachment-preview-meta">
+        <p className="attachment-preview-name" title={file.name}>{file.name}</p>
+        <p className="attachment-preview-size">{formatFileSize(file.size)}</p>
+      </div>
+      <button type="button" className="attachment-preview-remove" onClick={onRemove}>
+        Remove
+      </button>
+    </div>
+  );
+}
+
 function ReactionAction({
   selectedReaction,
   isActive,
@@ -380,6 +436,7 @@ function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommen
   const [showReplyInput, setShowReplyInput] = useState(false);
   const [replyContent, setReplyContent] = useState("");
   const [replyImageFile, setReplyImageFile] = useState(null);
+  const [replyImageError, setReplyImageError] = useState("");
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
   const [showReplies, setShowReplies] = useState(true);
   const [commentReaction, setCommentReaction] = useState(comment.likes?.likedByViewer ? "like" : null);
@@ -435,6 +492,7 @@ function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommen
       });
       setReplyContent("");
       setReplyImageFile(null);
+      setReplyImageError("");
       if (replyImageInputRef.current) {
         replyImageInputRef.current.value = "";
       }
@@ -450,14 +508,37 @@ function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommen
 
   const handleReplyImageChange = (event) => {
     const selectedFile = event.target.files?.[0] || null;
+
+    const imageError = getAttachmentError(selectedFile);
+    if (imageError) {
+      setReplyImageError(imageError);
+      setReplyImageFile(null);
+      if (replyImageInputRef.current) {
+        replyImageInputRef.current.value = "";
+      }
+      return;
+    }
+
+    setReplyImageError("");
     setReplyImageFile(selectedFile);
   };
 
   const handleReplyImageRemove = () => {
     setReplyImageFile(null);
+    setReplyImageError("");
     if (replyImageInputRef.current) {
       replyImageInputRef.current.value = "";
     }
+  };
+
+  const handleReplyCancel = () => {
+    setReplyContent("");
+    setReplyImageFile(null);
+    setReplyImageError("");
+    if (replyImageInputRef.current) {
+      replyImageInputRef.current.value = "";
+    }
+    setShowReplyInput(false);
   };
 
   return (
@@ -514,10 +595,10 @@ function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommen
               </div>
               {replyImageFile ? (
                 <div className="reply-attachment-row">
-                  <span className="comment-attachment-chip" title={replyImageFile.name}>{replyImageFile.name}</span>
-                  <button type="button" className="comment-attachment-remove" onClick={handleReplyImageRemove}>Remove</button>
+                  <AttachmentPreview file={replyImageFile} onRemove={handleReplyImageRemove} />
                 </div>
               ) : null}
+              {replyImageError ? <p className="attachment-error-text">{replyImageError}</p> : null}
               <input
                 ref={replyImageInputRef}
                 type="file"
@@ -526,10 +607,10 @@ function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommen
                 style={{ display: "none" }}
               />
               <div className="reply-composer-actions">
-                <button type="button" className="comment-link-btn" onClick={() => setShowReplyInput(false)}>
+                <button type="button" className="comment-link-btn" onClick={handleReplyCancel}>
                   Cancel
                 </button>
-                <button type="submit" className="comment-submit-btn" disabled={isSubmittingReply || (!replyContent.trim() && !replyImageFile)}>
+                <button type="submit" className="comment-submit-btn" disabled={isSubmittingReply || Boolean(replyImageError) || (!replyContent.trim() && !replyImageFile)}>
                   {isSubmittingReply ? "Replying..." : "Reply"}
                 </button>
               </div>
@@ -570,6 +651,7 @@ export function TimelinePost({
 }) {
   const [commentContent, setCommentContent] = useState("");
   const [commentImageFile, setCommentImageFile] = useState(null);
+  const [commentImageError, setCommentImageError] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [visibleTopLevelComments, setVisibleTopLevelComments] = useState(2);
   const [postReaction, setPostReaction] = useState(post.likes?.likedByViewer ? "like" : null);
@@ -628,6 +710,7 @@ export function TimelinePost({
       });
       setCommentContent("");
       setCommentImageFile(null);
+      setCommentImageError("");
       if (commentImageInputRef.current) {
         commentImageInputRef.current.value = "";
       }
@@ -642,11 +725,24 @@ export function TimelinePost({
 
   const handleCommentImageChange = (event) => {
     const selectedFile = event.target.files?.[0] || null;
+
+    const imageError = getAttachmentError(selectedFile);
+    if (imageError) {
+      setCommentImageError(imageError);
+      setCommentImageFile(null);
+      if (commentImageInputRef.current) {
+        commentImageInputRef.current.value = "";
+      }
+      return;
+    }
+
+    setCommentImageError("");
     setCommentImageFile(selectedFile);
   };
 
   const handleCommentImageRemove = () => {
     setCommentImageFile(null);
+    setCommentImageError("");
     if (commentImageInputRef.current) {
       commentImageInputRef.current.value = "";
     }
@@ -751,10 +847,10 @@ export function TimelinePost({
             </div>
             {commentImageFile ? (
               <div className="comment-attachment-row">
-                <span className="comment-attachment-chip" title={commentImageFile.name}>{commentImageFile.name}</span>
-                <button type="button" className="comment-attachment-remove" onClick={handleCommentImageRemove}>Remove</button>
+                <AttachmentPreview file={commentImageFile} onRemove={handleCommentImageRemove} />
               </div>
             ) : null}
+            {commentImageError ? <p className="attachment-error-text">{commentImageError}</p> : null}
             <input
               ref={commentImageInputRef}
               type="file"
@@ -762,7 +858,7 @@ export function TimelinePost({
               onChange={handleCommentImageChange}
               style={{ display: "none" }}
             />
-            <button type="submit" className="comment-submit-btn comment-submit-btn-main" disabled={isSubmittingComment || (!commentContent.trim() && !commentImageFile)}>
+            <button type="submit" className="comment-submit-btn comment-submit-btn-main" disabled={isSubmittingComment || Boolean(commentImageError) || (!commentContent.trim() && !commentImageFile)}>
               {isSubmittingComment ? "Posting..." : "Post"}
             </button>
           </form>
