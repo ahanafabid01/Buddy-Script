@@ -15,6 +15,10 @@ export function getFeedPosts(params = {}) {
     query.set("cursorId", String(params.cursorId));
   }
 
+  if (params.commentPreviewLimit) {
+    query.set("commentPreviewLimit", String(params.commentPreviewLimit));
+  }
+
   const queryString = query.toString();
   return apiRequest(`/feed/posts${queryString ? `?${queryString}` : ""}`);
 }
@@ -64,6 +68,25 @@ export function createFeedComment(postId, { content, parentCommentId = null, ima
       parentCommentId,
     },
   });
+}
+
+export function getFeedPostComments(postId, params = {}) {
+  const query = new URLSearchParams();
+
+  if (params.limit) {
+    query.set("limit", String(params.limit));
+  }
+
+  if (params.cursorCreatedAt) {
+    query.set("cursorCreatedAt", params.cursorCreatedAt);
+  }
+
+  if (params.cursorId) {
+    query.set("cursorId", String(params.cursorId));
+  }
+
+  const queryString = query.toString();
+  return apiRequest(`/feed/posts/${postId}/comments${queryString ? `?${queryString}` : ""}`);
 }
 
 export function toggleFeedCommentLike(commentId) {

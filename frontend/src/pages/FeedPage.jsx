@@ -5,6 +5,7 @@ import { resolveApiUrl } from "../api/client";
 import {
   createFeedComment,
   createFeedPost,
+  getFeedPostComments,
   getFeedPosts,
   toggleFeedCommentLike,
   toggleFeedPostLike,
@@ -34,8 +35,33 @@ function normalizePost(post) {
   return {
     ...post,
     imageUrl: resolveApiUrl(post.imageUrl),
+    topLevelCommentCount: Number.isFinite(post.topLevelCommentCount)
+      ? post.topLevelCommentCount
+      : Array.isArray(post.comments)
+        ? post.comments.length
+        : 0,
+    commentPagination: post.commentPagination || {
+      hasMore: false,
+      nextCursor: null,
+      pageSize: 2,
+    },
     comments: Array.isArray(post.comments) ? post.comments : [],
   };
+}
+
+function mergeTopLevelComments(existingComments, incomingComments) {
+  const merged = new Map();
+
+  for (const comment of [...(incomingComments || []), ...(existingComments || [])]) {
+    merged.set(comment.id, comment);
+  }
+
+  return [...merged.values()].sort((a, b) => {
+    const aTime = new Date(a.createdAt).getTime();
+    const bTime = new Date(b.createdAt).getTime();
+    if (aTime !== bTime) return aTime - bTime;
+    return a.id - b.id;
+  });
 }
 
 function insertCommentInTree(comments, newComment) {
@@ -183,7 +209,7 @@ export default function FeedPage() {
     try {
       setIsFeedLoading(true);
       setFeedError("");
-      const data = await getFeedPosts({ limit: 30 });
+      const data = await getFeedPosts({ limit: 30, commentPreviewLimit: 2 });
       setPosts((data.posts || []).map(normalizePost));
     } catch (error) {
       setFeedError(error.message || "Failed to load feed");
@@ -267,9 +293,14 @@ export default function FeedPage() {
       setPosts((previous) =>
         previous.map((post) => {
           if (post.id !== postId) return post;
+
+          const isTopLevelComment = !parentCommentId;
           return {
             ...post,
             commentCount: (post.commentCount || 0) + 1,
+            topLevelCommentCount: isTopLevelComment
+              ? (post.topLevelCommentCount || 0) + 1
+              : (post.topLevelCommentCount || 0),
             comments: insertCommentInTree(post.comments || [], data.comment),
           };
         }),
@@ -293,6 +324,45 @@ export default function FeedPage() {
       );
     } catch (error) {
       setFeedError(error.message || "Failed to update comment like");
+    }
+  };
+
+  const handleLoadMoreComments = async (postId) => {
+    const currentPost = posts.find((post) => post.id === postId);
+    if (!currentPost?.commentPagination?.hasMore) return 0;
+
+    try {
+      const data = await getFeedPostComments(postId, {
+        limit: currentPost.commentPagination.pageSize || 10,
+        cursorCreatedAt: currentPost.commentPagination.nextCursor?.createdAt || null,
+        cursorId: currentPost.commentPagination.nextCursor?.id || null,
+      });
+
+      const fetchedComments = Array.isArray(data.comments) ? data.comments : [];
+
+      setPosts((previous) =>
+        previous.map((post) => {
+          if (post.id !== postId) return post;
+
+          return {
+            ...post,
+            topLevelCommentCount: Number.isFinite(data.totalCount)
+              ? data.totalCount
+              : post.topLevelCommentCount,
+            comments: mergeTopLevelComments(post.comments || [], fetchedComments),
+            commentPagination: {
+              ...(post.commentPagination || {}),
+              hasMore: Boolean(data.hasMore),
+              nextCursor: data.nextCursor || null,
+            },
+          };
+        }),
+      );
+
+      return fetchedComments.length;
+    } catch (error) {
+      setFeedError(error.message || "Failed to load more comments");
+      return 0;
     }
   };
 
@@ -858,6 +928,7 @@ export default function FeedPage() {
                           post={post}
                           onTogglePostLike={handleTogglePostLike}
                           onCreateComment={handleCreateComment}
+                          onLoadMoreComments={handleLoadMoreComments}
                           onToggleCommentLike={handleToggleCommentLike}
                         />
                       ))}

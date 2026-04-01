@@ -16,9 +16,21 @@ CREATE TABLE IF NOT EXISTS posts (
   content TEXT NOT NULL CHECK (char_length(trim(content)) > 0),
   image_url TEXT,
   visibility VARCHAR(7) NOT NULL DEFAULT 'public' CHECK (visibility IN ('public', 'private')),
+  like_count INTEGER NOT NULL DEFAULT 0 CHECK (like_count >= 0),
+  comment_count INTEGER NOT NULL DEFAULT 0 CHECK (comment_count >= 0),
+  top_level_comment_count INTEGER NOT NULL DEFAULT 0 CHECK (top_level_comment_count >= 0),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE posts
+ADD COLUMN IF NOT EXISTS like_count INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE posts
+ADD COLUMN IF NOT EXISTS comment_count INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE posts
+ADD COLUMN IF NOT EXISTS top_level_comment_count INTEGER NOT NULL DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS comments (
   id BIGSERIAL PRIMARY KEY,
@@ -27,9 +39,17 @@ CREATE TABLE IF NOT EXISTS comments (
   parent_comment_id BIGINT REFERENCES comments(id) ON DELETE CASCADE,
   body TEXT,
   image_url TEXT,
+  like_count INTEGER NOT NULL DEFAULT 0 CHECK (like_count >= 0),
+  reply_count INTEGER NOT NULL DEFAULT 0 CHECK (reply_count >= 0),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE comments
+ADD COLUMN IF NOT EXISTS like_count INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE comments
+ADD COLUMN IF NOT EXISTS reply_count INTEGER NOT NULL DEFAULT 0;
 
 ALTER TABLE comments
 ADD COLUMN IF NOT EXISTS image_url TEXT;
@@ -64,6 +84,73 @@ CREATE TABLE IF NOT EXISTS comment_likes (
   PRIMARY KEY (comment_id, user_id)
 );
 
+UPDATE posts p
+SET like_count = likes.count
+FROM (
+  SELECT post_id, COUNT(*)::int AS count
+  FROM post_likes
+  GROUP BY post_id
+) likes
+WHERE p.id = likes.post_id;
+
+UPDATE posts
+SET like_count = 0
+WHERE like_count IS NULL;
+
+UPDATE posts p
+SET comment_count = comments.count
+FROM (
+  SELECT post_id, COUNT(*)::int AS count
+  FROM comments
+  GROUP BY post_id
+) comments
+WHERE p.id = comments.post_id;
+
+UPDATE posts
+SET comment_count = 0
+WHERE comment_count IS NULL;
+
+UPDATE posts p
+SET top_level_comment_count = top.count
+FROM (
+  SELECT post_id, COUNT(*)::int AS count
+  FROM comments
+  WHERE parent_comment_id IS NULL
+  GROUP BY post_id
+) top
+WHERE p.id = top.post_id;
+
+UPDATE posts
+SET top_level_comment_count = 0
+WHERE top_level_comment_count IS NULL;
+
+UPDATE comments c
+SET like_count = likes.count
+FROM (
+  SELECT comment_id, COUNT(*)::int AS count
+  FROM comment_likes
+  GROUP BY comment_id
+) likes
+WHERE c.id = likes.comment_id;
+
+UPDATE comments
+SET like_count = 0
+WHERE like_count IS NULL;
+
+UPDATE comments c
+SET reply_count = replies.count
+FROM (
+  SELECT parent_comment_id, COUNT(*)::int AS count
+  FROM comments
+  WHERE parent_comment_id IS NOT NULL
+  GROUP BY parent_comment_id
+) replies
+WHERE c.id = replies.parent_comment_id;
+
+UPDATE comments
+SET reply_count = 0
+WHERE reply_count IS NULL;
+
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -97,5 +184,7 @@ CREATE INDEX IF NOT EXISTS idx_posts_public_order ON posts(created_at DESC, id D
 CREATE INDEX IF NOT EXISTS idx_comments_post_order ON comments(post_id, created_at ASC, id ASC);
 CREATE INDEX IF NOT EXISTS idx_comments_parent_order ON comments(parent_comment_id, created_at ASC, id ASC);
 CREATE INDEX IF NOT EXISTS idx_post_likes_post_created ON post_likes(post_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_post_likes_user_created ON post_likes(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_comment_likes_comment_created ON comment_likes(comment_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_comment_likes_user_created ON comment_likes(user_id, created_at DESC);
 

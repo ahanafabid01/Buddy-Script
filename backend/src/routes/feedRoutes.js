@@ -8,6 +8,7 @@ const httpError = require("../utils/httpError");
 const {
   getPostsForFeed,
   getPostsByIds,
+  getTopLevelCommentsForPost,
   createPost,
   togglePostLike,
   createComment,
@@ -49,6 +50,9 @@ router.get("/posts", async (req, res, next) => {
     const limit = req.query.limit
       ? parsePositiveInt(req.query.limit, "limit")
       : 10;
+    const commentPreviewLimit = req.query.commentPreviewLimit
+      ? parsePositiveInt(req.query.commentPreviewLimit, "commentPreviewLimit")
+      : 2;
 
     const cursorCreatedAt = req.query.cursorCreatedAt
       ? new Date(req.query.cursorCreatedAt)
@@ -63,6 +67,7 @@ router.get("/posts", async (req, res, next) => {
 
     const data = await getPostsForFeed(pool, req.auth.userId, {
       limit,
+      commentPreviewLimit,
       cursorCreatedAt: cursorCreatedAt ? cursorCreatedAt.toISOString() : null,
       cursorId,
     });
@@ -101,6 +106,36 @@ router.post("/posts/:postId/likes/toggle", async (req, res, next) => {
     const postId = parsePositiveInt(req.params.postId, "postId");
     const likes = await togglePostLike(pool, postId, req.auth.userId);
     return res.json({ likes });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/posts/:postId/comments", async (req, res, next) => {
+  try {
+    const postId = parsePositiveInt(req.params.postId, "postId");
+    const limit = req.query.limit
+      ? parsePositiveInt(req.query.limit, "limit")
+      : 10;
+
+    const cursorCreatedAt = req.query.cursorCreatedAt
+      ? new Date(req.query.cursorCreatedAt)
+      : null;
+    const cursorId = req.query.cursorId
+      ? parsePositiveInt(req.query.cursorId, "cursorId")
+      : null;
+
+    if (req.query.cursorCreatedAt && Number.isNaN(cursorCreatedAt.getTime())) {
+      throw httpError(400, "Invalid cursorCreatedAt");
+    }
+
+    const data = await getTopLevelCommentsForPost(pool, req.auth.userId, postId, {
+      limit,
+      cursorCreatedAt: cursorCreatedAt ? cursorCreatedAt.toISOString() : null,
+      cursorId,
+    });
+
+    return res.json(data);
   } catch (error) {
     return next(error);
   }

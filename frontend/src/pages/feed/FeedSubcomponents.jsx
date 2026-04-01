@@ -442,7 +442,9 @@ function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommen
   const [commentReaction, setCommentReaction] = useState(comment.likes?.likedByViewer ? "like" : null);
   const replyImageInputRef = useRef(null);
 
-  const replyCount = (comment.replies || []).length;
+  const replyCount = Number.isFinite(comment.replyCount)
+    ? comment.replyCount
+    : (comment.replies || []).length;
   const commentTime = formatTimeAgo(comment.createdAt);
 
   useEffect(() => {
@@ -647,12 +649,14 @@ export function TimelinePost({
   post,
   onTogglePostLike,
   onCreateComment,
+  onLoadMoreComments,
   onToggleCommentLike,
 }) {
   const [commentContent, setCommentContent] = useState("");
   const [commentImageFile, setCommentImageFile] = useState(null);
   const [commentImageError, setCommentImageError] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [isLoadingMoreComments, setIsLoadingMoreComments] = useState(false);
   const [visibleTopLevelComments, setVisibleTopLevelComments] = useState(2);
   const [postReaction, setPostReaction] = useState(post.likes?.likedByViewer ? "like" : null);
   const commentImageInputRef = useRef(null);
@@ -660,8 +664,14 @@ export function TimelinePost({
   const authorName = post.author?.fullName || post.author || "Unknown";
   const visibilityLabel = post.visibility === "private" ? "Private" : "Public";
   const topLevelComments = post.comments || [];
-  const hiddenTopLevelCount = Math.max(topLevelComments.length - visibleTopLevelComments, 0);
-  const visibleComments = hiddenTopLevelCount > 0 ? topLevelComments.slice(hiddenTopLevelCount) : topLevelComments;
+  const loadedHiddenTopLevelCount = Math.max(topLevelComments.length - visibleTopLevelComments, 0);
+  const totalTopLevelCount = Number.isFinite(post.topLevelCommentCount)
+    ? post.topLevelCommentCount
+    : topLevelComments.length;
+  const serverHiddenTopLevelCount = Math.max(totalTopLevelCount - topLevelComments.length, 0);
+  const visibleComments = loadedHiddenTopLevelCount > 0
+    ? topLevelComments.slice(loadedHiddenTopLevelCount)
+    : topLevelComments;
 
   useEffect(() => {
     if (!post.likes?.likedByViewer) {
@@ -745,6 +755,27 @@ export function TimelinePost({
     setCommentImageError("");
     if (commentImageInputRef.current) {
       commentImageInputRef.current.value = "";
+    }
+  };
+
+  const handleViewPreviousComments = async () => {
+    if (loadedHiddenTopLevelCount > 0) {
+      setVisibleTopLevelComments(topLevelComments.length);
+      return;
+    }
+
+    if (!serverHiddenTopLevelCount || !onLoadMoreComments || isLoadingMoreComments) {
+      return;
+    }
+
+    try {
+      setIsLoadingMoreComments(true);
+      const loadedCount = await onLoadMoreComments(post.id);
+      if (loadedCount > 0) {
+        setVisibleTopLevelComments((previous) => previous + loadedCount);
+      }
+    } finally {
+      setIsLoadingMoreComments(false);
     }
   };
 
@@ -870,9 +901,11 @@ export function TimelinePost({
           </form>
         </div>
 
-        {hiddenTopLevelCount > 0 ? (
-          <button type="button" className="comments-history-btn" onClick={() => setVisibleTopLevelComments(topLevelComments.length)}>
-            View {hiddenTopLevelCount} previous comment{hiddenTopLevelCount === 1 ? "" : "s"}
+        {loadedHiddenTopLevelCount > 0 || serverHiddenTopLevelCount > 0 ? (
+          <button type="button" className="comments-history-btn" onClick={handleViewPreviousComments} disabled={isLoadingMoreComments}>
+            {isLoadingMoreComments
+              ? "Loading comments..."
+              : `View ${loadedHiddenTopLevelCount > 0 ? loadedHiddenTopLevelCount : serverHiddenTopLevelCount} previous comment${(loadedHiddenTopLevelCount > 0 ? loadedHiddenTopLevelCount : serverHiddenTopLevelCount) === 1 ? "" : "s"}`}
           </button>
         ) : null}
 
