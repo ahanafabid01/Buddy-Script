@@ -18,6 +18,17 @@ export const NAV_ITEMS = [
   { id: "chat", href: "chat.html", label: "Chat", count: 2, active: false },
 ];
 
+export const EXPLORE_ITEMS = [
+  { id: "learning", label: "Learning", href: "#0", icon: "learning", isNew: true },
+  { id: "insights", label: "Insights", href: "#0", icon: "insights", isNew: false },
+  { id: "find-friends", label: "Find friends", href: "find-friends.html", icon: "find-friends", isNew: false },
+  { id: "bookmarks", label: "Bookmarks", href: "#0", icon: "bookmarks", isNew: false },
+  { id: "group", label: "Group", href: "group.html", icon: "group", isNew: false },
+  { id: "gaming", label: "Gaming", href: "#0", icon: "gaming", isNew: true },
+  { id: "settings", label: "Settings", href: "#0", icon: "settings", isNew: false },
+  { id: "save-post", label: "Save post", href: "#0", icon: "save-post", isNew: false },
+];
+
 export const NOTIFICATIONS = Array.from({ length: 14 }).map((_, index) => {
   const isGroup = index % 2 === 1;
   return {
