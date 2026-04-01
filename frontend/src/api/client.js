@@ -1,4 +1,11 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
+export const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
+
+export function resolveApiUrl(path) {
+  if (!path) return null;
+  if (/^https?:\/\//i.test(path)) return path;
+  return `${API_ORIGIN}${path.startsWith("/") ? path : `/${path}`}`;
+}
 
 export async function apiRequest(path, options = {}) {
   const { method = "GET", body, headers = {} } = options;

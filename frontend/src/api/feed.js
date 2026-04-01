@@ -1,0 +1,57 @@
+import { apiRequest } from "./client";
+
+export function getFeedPosts(params = {}) {
+  const query = new URLSearchParams();
+
+  if (params.limit) {
+    query.set("limit", String(params.limit));
+  }
+
+  if (params.cursorCreatedAt) {
+    query.set("cursorCreatedAt", params.cursorCreatedAt);
+  }
+
+  if (params.cursorId) {
+    query.set("cursorId", String(params.cursorId));
+  }
+
+  const queryString = query.toString();
+  return apiRequest(`/feed/posts${queryString ? `?${queryString}` : ""}`);
+}
+
+export function createFeedPost({ content, visibility = "public", imageFile = null }) {
+  const formData = new FormData();
+  formData.append("content", content);
+  formData.append("visibility", visibility);
+
+  if (imageFile) {
+    formData.append("image", imageFile);
+  }
+
+  return apiRequest("/feed/posts", {
+    method: "POST",
+    body: formData,
+  });
+}
+
+export function toggleFeedPostLike(postId) {
+  return apiRequest(`/feed/posts/${postId}/likes/toggle`, {
+    method: "POST",
+  });
+}
+
+export function createFeedComment(postId, { content, parentCommentId = null }) {
+  return apiRequest(`/feed/posts/${postId}/comments`, {
+    method: "POST",
+    body: {
+      content,
+      parentCommentId,
+    },
+  });
+}
+
+export function toggleFeedCommentLike(commentId) {
+  return apiRequest(`/feed/comments/${commentId}/likes/toggle`, {
+    method: "POST",
+  });
+}

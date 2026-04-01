@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 export function HeaderNavIcon({ name, active = false, className = "" }) {
   if (name === "search") {
     return (
@@ -194,7 +196,138 @@ export function EventCard({ eventItem }) {
   );
 }
 
-export function TimelinePost({ post }) {
+function formatTimeAgo(dateString) {
+  if (!dateString) return "Just now";
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return "Just now";
+
+  const seconds = Math.max(1, Math.floor((Date.now() - date.getTime()) / 1000));
+  if (seconds < 60) return `${seconds}s ago`;
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
+}
+
+function likedByText(likedBy = []) {
+  if (!Array.isArray(likedBy) || likedBy.length === 0) {
+    return "No likes yet";
+  }
+
+  return likedBy.map((entry) => entry.name).join(", ");
+}
+
+function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommentLike }) {
+  const [showReplyInput, setShowReplyInput] = useState(false);
+  const [replyContent, setReplyContent] = useState("");
+  const [isSubmittingReply, setIsSubmittingReply] = useState(false);
+
+  const handleReplySubmit = async (event) => {
+    event.preventDefault();
+    const trimmedReply = replyContent.trim();
+    if (!trimmedReply || isSubmittingReply) return;
+
+    try {
+      setIsSubmittingReply(true);
+      await onCreateComment({
+        postId,
+        content: trimmedReply,
+        parentCommentId: comment.id,
+      });
+      setReplyContent("");
+      setShowReplyInput(false);
+    } finally {
+      setIsSubmittingReply(false);
+    }
+  };
+
+  return (
+    <div style={{ marginLeft: `${depth * 20}px`, marginTop: "10px" }}>
+      <div className="_feed_inner_comment_box_content">
+        <div className="_feed_inner_comment_box_content_image">
+          <img src="/assets/images/comment_img.png" alt="" className="_comment_img" />
+        </div>
+        <div className="_feed_inner_comment_box_content_txt" style={{ width: "100%" }}>
+          <p className="_feed_inner_timeline_post_box_para">
+            <strong>{comment.author?.fullName || "Unknown"}</strong> . {formatTimeAgo(comment.createdAt)}
+          </p>
+          <p className="_feed_inner_timeline_post_title" style={{ fontSize: "14px", marginBottom: "8px" }}>{comment.content}</p>
+          <p className="_feed_inner_timeline_post_box_para" title={likedByText(comment.likes?.likedBy)}>
+            Liked by: {likedByText(comment.likes?.likedBy)}
+          </p>
+          <div style={{ display: "flex", gap: "8px", marginTop: "6px" }}>
+            <button type="button" className="_feed_inner_text_area_bottom_photo_link" onClick={() => onToggleCommentLike(comment.id)}>
+              {comment.likes?.likedByViewer ? "Unlike" : "Like"} ({comment.likes?.count || 0})
+            </button>
+            <button type="button" className="_feed_inner_text_area_bottom_photo_link" onClick={() => setShowReplyInput((previous) => !previous)}>
+              Reply
+            </button>
+          </div>
+          {showReplyInput ? (
+            <form onSubmit={handleReplySubmit} style={{ marginTop: "8px" }}>
+              <textarea
+                className="form-control _comment_textarea"
+                placeholder="Write a reply"
+                value={replyContent}
+                onChange={(event) => setReplyContent(event.target.value)}
+              />
+              <button type="submit" className="_feed_inner_text_area_bottom_photo_link" style={{ marginTop: "8px" }} disabled={isSubmittingReply}>
+                {isSubmittingReply ? "Replying..." : "Reply"}
+              </button>
+            </form>
+          ) : null}
+        </div>
+      </div>
+
+      {(comment.replies || []).map((reply) => (
+        <CommentThread
+          key={reply.id}
+          postId={postId}
+          comment={reply}
+          depth={depth + 1}
+          onCreateComment={onCreateComment}
+          onToggleCommentLike={onToggleCommentLike}
+        />
+      ))}
+    </div>
+  );
+}
+
+export function TimelinePost({
+  post,
+  onTogglePostLike,
+  onCreateComment,
+  onToggleCommentLike,
+}) {
+  const [commentContent, setCommentContent] = useState("");
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+
+  const authorName = post.author?.fullName || post.author || "Unknown";
+  const visibilityLabel = post.visibility === "private" ? "Private" : "Public";
+
+  const handleCommentSubmit = async (event) => {
+    event.preventDefault();
+    const trimmedComment = commentContent.trim();
+    if (!trimmedComment || isSubmittingComment) return;
+
+    try {
+      setIsSubmittingComment(true);
+      await onCreateComment({
+        postId: post.id,
+        content: trimmedComment,
+        parentCommentId: null,
+      });
+      setCommentContent("");
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
+
   return (
     <div className="_feed_inner_timeline_post_area _b_radious6 _padd_b24 _padd_t24 _mar_b16">
       <div className="_feed_inner_timeline_content _padd_r24 _padd_l24">
@@ -204,9 +337,9 @@ export function TimelinePost({ post }) {
               <img src="/assets/images/post_img.png" alt="" className="_post_img" />
             </div>
             <div className="_feed_inner_timeline_post_box_txt">
-              <h4 className="_feed_inner_timeline_post_box_title">{post.author}</h4>
+              <h4 className="_feed_inner_timeline_post_box_title">{authorName}</h4>
               <p className="_feed_inner_timeline_post_box_para">
-                {post.time} . <a href="#0">Public</a>
+                {formatTimeAgo(post.createdAt || post.time)} . <a href="#0">{visibilityLabel}</a>
               </p>
             </div>
           </div>
@@ -220,10 +353,12 @@ export function TimelinePost({ post }) {
             </button>
           </div>
         </div>
-        <h4 className="_feed_inner_timeline_post_title">{post.title}</h4>
-        <div className="_feed_inner_timeline_image">
-          <img src={post.image} alt="" className="_time_img" />
-        </div>
+        <h4 className="_feed_inner_timeline_post_title">{post.content || post.title}</h4>
+        {post.imageUrl || post.image ? (
+          <div className="_feed_inner_timeline_image">
+            <img src={post.imageUrl || post.image} alt="" className="_time_img" />
+          </div>
+        ) : null}
       </div>
 
       <div className="_feed_inner_timeline_total_reacts _padd_r24 _padd_l24 _mar_b26">
@@ -233,17 +368,21 @@ export function TimelinePost({ post }) {
           <img src="/assets/images/react_img3.png" alt="Image" className="_react_img _rect_img_mbl_none" />
           <img src="/assets/images/react_img4.png" alt="Image" className="_react_img _rect_img_mbl_none" />
           <img src="/assets/images/react_img5.png" alt="Image" className="_react_img _rect_img_mbl_none" />
-          <p className="_feed_inner_timeline_total_reacts_para">9+</p>
+          <p className="_feed_inner_timeline_total_reacts_para" title={likedByText(post.likes?.likedBy)}>{post.likes?.count || 0}</p>
         </div>
         <div className="_feed_inner_timeline_total_reacts_txt">
-          <p className="_feed_inner_timeline_total_reacts_para1"><span>{post.comments}</span> Comment</p>
-          <p className="_feed_inner_timeline_total_reacts_para2"><span>{post.shares}</span> Share</p>
+          <p className="_feed_inner_timeline_total_reacts_para1"><span>{post.commentCount || 0}</span> Comment</p>
+          <p className="_feed_inner_timeline_total_reacts_para2"><span>{post.shares || 0}</span> Share</p>
         </div>
       </div>
 
       <div className="_feed_inner_timeline_reaction">
-        <button type="button" className="_feed_inner_timeline_reaction_emoji _feed_reaction _feed_reaction_active">
-          <span className="_feed_inner_timeline_reaction_link">Haha</span>
+        <button
+          type="button"
+          className={`_feed_inner_timeline_reaction_emoji _feed_reaction ${post.likes?.likedByViewer ? "_feed_reaction_active" : ""}`}
+          onClick={() => onTogglePostLike(post.id)}
+        >
+          <span className="_feed_inner_timeline_reaction_link">{post.likes?.likedByViewer ? "Unlike" : "Like"}</span>
         </button>
         <button type="button" className="_feed_inner_timeline_reaction_comment _feed_reaction">
           <span className="_feed_inner_timeline_reaction_link">Comment</span>
@@ -255,17 +394,36 @@ export function TimelinePost({ post }) {
 
       <div className="_feed_inner_timeline_cooment_area">
         <div className="_feed_inner_comment_box">
-          <form className="_feed_inner_comment_box_form">
+          <form className="_feed_inner_comment_box_form" onSubmit={handleCommentSubmit}>
             <div className="_feed_inner_comment_box_content">
               <div className="_feed_inner_comment_box_content_image">
                 <img src="/assets/images/comment_img.png" alt="" className="_comment_img" />
               </div>
               <div className="_feed_inner_comment_box_content_txt">
-                <textarea className="form-control _comment_textarea" placeholder="Write a comment" />
+                <textarea
+                  className="form-control _comment_textarea"
+                  placeholder="Write a comment"
+                  value={commentContent}
+                  onChange={(event) => setCommentContent(event.target.value)}
+                />
               </div>
             </div>
+            <button type="submit" className="_feed_inner_text_area_bottom_photo_link" style={{ marginTop: "8px" }} disabled={isSubmittingComment}>
+              {isSubmittingComment ? "Commenting..." : "Comment"}
+            </button>
           </form>
         </div>
+
+        {(post.comments || []).map((comment) => (
+          <CommentThread
+            key={comment.id}
+            postId={post.id}
+            comment={comment}
+            depth={0}
+            onCreateComment={onCreateComment}
+            onToggleCommentLike={onToggleCommentLike}
+          />
+        ))}
       </div>
     </div>
   );
