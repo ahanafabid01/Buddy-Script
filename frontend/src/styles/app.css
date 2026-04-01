@@ -172,6 +172,36 @@
   padding: 0;
 }
 
+.composer-write-label {
+  position: absolute;
+  top: 50%;
+  left: 8px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 0;
+  color: #5f6975;
+  pointer-events: none;
+}
+
+.composer-write-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #5f6975;
+}
+
+.composer-textarea {
+  resize: none;
+}
+
+.composer-textarea.is-collapsed {
+  height: 42px !important;
+  min-height: 42px !important;
+}
+
 .comment-thread {
   margin-top: 12px;
   padding-left: 10px;
