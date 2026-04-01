@@ -24,7 +24,7 @@ app.use(
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || origin === env.clientOrigin) {
+      if (!origin || env.clientOrigins.includes(origin)) {
         callback(null, true);
         return;
       }

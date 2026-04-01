@@ -39,10 +39,12 @@ function verifyAuthToken(token) {
 }
 
 function getCookieOptions() {
+  const sameSite = env.cookieSameSite;
+
   return {
     httpOnly: true,
-    secure: env.isProduction,
-    sameSite: "lax",
+    secure: env.isProduction || sameSite === "none",
+    sameSite,
     path: "/",
     maxAge: parseDurationToMs(env.jwtExpiresIn),
   };

@@ -20,6 +20,16 @@ const safeMaxFileSizeMb =
   Number.isFinite(maxFileSizeMb) && maxFileSizeMb > 0 ? maxFileSizeMb : 5;
 
 const port = Number.parseInt(process.env.PORT || "4000", 10);
+const rawClientOrigins = process.env.CLIENT_ORIGIN || "http://localhost:5173";
+const clientOrigins = rawClientOrigins
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const cookieSameSiteValue = String(process.env.COOKIE_SAME_SITE || "lax").toLowerCase();
+const cookieSameSite = ["lax", "strict", "none"].includes(cookieSameSiteValue)
+  ? cookieSameSiteValue
+  : "lax";
 
 module.exports = {
   nodeEnv: NODE_ENV,
@@ -30,7 +40,8 @@ module.exports = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
   cookieName: process.env.COOKIE_NAME || "appifylab_token",
   csrfCookieName: process.env.CSRF_COOKIE_NAME || "appifylab_csrf",
-  clientOrigin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
+  clientOrigins,
+  cookieSameSite,
   uploadDir: path.resolve(process.cwd(), process.env.UPLOAD_DIR || "uploads"),
   maxFileSizeBytes: safeMaxFileSizeMb * 1024 * 1024,
 };
