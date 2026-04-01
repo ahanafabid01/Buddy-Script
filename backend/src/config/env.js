@@ -6,8 +6,22 @@ dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 const NODE_ENV = process.env.NODE_ENV || "development";
 const isProduction = NODE_ENV === "production";
 
-const requiredVariables = ["DATABASE_URL", "JWT_SECRET"];
-const missingVariables = requiredVariables.filter((name) => !process.env[name]);
+const databaseUrl =
+  process.env.DATABASE_URL ||
+  process.env.POSTGRES_URL ||
+  process.env.POSTGRES_INTERNAL_URL ||
+  process.env.POSTGRES_EXTERNAL_URL ||
+  process.env.RENDER_DATABASE_URL ||
+  process.env.RENDER_INTERNAL_DATABASE_URL ||
+  process.env.RENDER_EXTERNAL_DATABASE_URL;
+
+const requiredVariables = [
+  { key: "DATABASE_URL", value: databaseUrl },
+  { key: "JWT_SECRET", value: process.env.JWT_SECRET },
+];
+const missingVariables = requiredVariables
+  .filter(({ value }) => !value)
+  .map(({ key }) => key);
 
 if (missingVariables.length > 0) {
   throw new Error(
@@ -35,7 +49,7 @@ module.exports = {
   nodeEnv: NODE_ENV,
   isProduction,
   port: Number.isFinite(port) ? port : 4000,
-  databaseUrl: process.env.DATABASE_URL,
+  databaseUrl,
   jwtSecret: process.env.JWT_SECRET,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
   cookieName: process.env.COOKIE_NAME || "appifylab_token",
