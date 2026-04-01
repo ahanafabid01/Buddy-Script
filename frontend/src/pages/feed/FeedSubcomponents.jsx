@@ -345,8 +345,8 @@ function ReactionAction({
         ) : null}
         {!showReactionEmoji && showDefaultLikeIcon ? (
           <span className="reaction-trigger-emoji" aria-hidden="true">
-            <svg className="_reaction_svg" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 20 20">
-              <path stroke="#000" strokeLinecap="round" strokeLinejoin="round" d="M7.083 8.333v9.167M10.417 8.333l2.5-5a2.5 2.5 0 014.583 1.667l-.833 3.333h2.083a1.667 1.667 0 011.625 2.042l-1.25 5A1.667 1.667 0 0117.5 16.667h-7.083V8.333zM3.75 8.333h3.333v8.334H3.75A1.667 1.667 0 012.083 15V10A1.667 1.667 0 013.75 8.333z"/>
+            <svg className="_reaction_svg reaction-default-like-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24">
+              <path stroke="#000" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M7.5 21V9m0 12H5.25A2.25 2.25 0 013 18.75v-6A2.25 2.25 0 015.25 10.5H7.5m0 10.5h7.275c.962 0 1.794-.68 1.987-1.622l1.165-5.7A1.875 1.875 0 0016.09 11.25h-3.84a.75.75 0 01-.75-.75V7.125a3.375 3.375 0 00-3.375-3.375L7.5 10.5"/>
             </svg>
           </span>
         ) : null}
@@ -394,9 +394,16 @@ function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommen
   }, [comment.likes?.likedByViewer, commentReaction]);
 
   const handleCommentReactionSelect = async (reactionId) => {
+    if (comment.likes?.likedByViewer && commentReaction === reactionId) {
+      await onToggleCommentLike(comment.id);
+      setCommentReaction(null);
+      return;
+    }
+
     if (!comment.likes?.likedByViewer) {
       await onToggleCommentLike(comment.id);
     }
+
     setCommentReaction(reactionId);
   };
 
@@ -449,6 +456,7 @@ function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommen
               className={`comment-link-btn ${comment.likes?.likedByViewer ? "is-active" : ""}`}
               labelClassName="comment-link-btn"
               compact
+              showDefaultLikeIcon
             />
             <button type="button" className="comment-link-btn" onClick={() => setShowReplyInput((previous) => !previous)}>
               Reply
@@ -522,9 +530,16 @@ export function TimelinePost({
   }, [post.likes?.likedByViewer, postReaction]);
 
   const handlePostReactionSelect = async (reactionId) => {
+    if (post.likes?.likedByViewer && postReaction === reactionId) {
+      await onTogglePostLike(post.id);
+      setPostReaction(null);
+      return;
+    }
+
     if (!post.likes?.likedByViewer) {
       await onTogglePostLike(post.id);
     }
+
     setPostReaction(reactionId);
   };
 

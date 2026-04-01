@@ -250,9 +250,31 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   margin-right: 6px;
+  overflow: visible;
+}
+
+.reaction-default-like-icon {
+  width: 21px;
+  height: 21px;
+  display: block;
+}
+
+.reaction-action.is-compact .reaction-trigger-emoji {
+  width: 18px;
+  height: 18px;
+  margin-right: 4px;
+}
+
+.reaction-action.is-compact .reaction-default-like-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.reaction-action.is-compact .reaction-trigger-glyph {
+  font-size: 15px;
 }
 
 .reaction-trigger-icon {
