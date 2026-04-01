@@ -342,8 +342,15 @@
 
 .comment-composer {
   display: flex;
+  flex-direction: column;
   gap: 10px;
+  align-items: stretch;
+}
+
+.comment-composer-main {
+  display: flex;
   align-items: center;
+  gap: 10px;
 }
 
 .comment-composer-row {
@@ -428,6 +435,7 @@
   border-color: #157cf6;
   color: #fff;
   min-width: 76px;
+  flex: 0 0 auto;
 }
 
 .comment-submit-btn-main:disabled {
@@ -699,8 +707,9 @@
 }
 
 @media only screen and (max-width: 767px) {
-  .comment-composer {
+  .comment-composer-main {
     align-items: flex-start;
+    flex-direction: column;
   }
 
   .comment-composer-row {
@@ -713,7 +722,7 @@
   }
 
   .comment-submit-btn-main {
-    min-width: 64px;
+    min-width: 100%;
     padding: 6px 10px;
   }
 

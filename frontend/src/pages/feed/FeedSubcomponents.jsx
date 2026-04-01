@@ -823,27 +823,32 @@ export function TimelinePost({
       <div className="_feed_inner_timeline_cooment_area">
         <div className="comment-composer-wrap">
           <form className="comment-composer" onSubmit={handleCommentSubmit}>
-            <div className="comment-composer-row">
-              <div className="comment-avatar-wrap">
-                <img src="/assets/images/comment_img.png" alt="" className="comment-avatar" />
-              </div>
-              <div className="comment-composer-input-wrap">
-                <textarea
-                  className="form-control _comment_textarea comment-composer-textarea"
-                  placeholder="Write a comment"
-                  value={commentContent}
-                  onChange={(event) => setCommentContent(event.target.value)}
-                />
-                <div className="comment-composer-tools">
-                  <button type="button" className="comment-tool-btn" aria-label="Attach image" onClick={handleCommentGalleryClick}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 18 18">
-                      <rect width="13.5" height="12" x="2.25" y="3" stroke="currentColor" strokeWidth="1.5" rx="2"/>
-                      <circle cx="6.188" cy="7.313" r="1.125" fill="currentColor"/>
-                      <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 11.25l-2.785-2.227a1.5 1.5 0 00-1.894.037l-3.029 2.599-1.16-.994a1.5 1.5 0 00-1.952.016L2.25 12.375"/>
-                    </svg>
-                  </button>
+            <div className="comment-composer-main">
+              <div className="comment-composer-row">
+                <div className="comment-avatar-wrap">
+                  <img src="/assets/images/comment_img.png" alt="" className="comment-avatar" />
+                </div>
+                <div className="comment-composer-input-wrap">
+                  <textarea
+                    className="form-control _comment_textarea comment-composer-textarea"
+                    placeholder="Write a comment"
+                    value={commentContent}
+                    onChange={(event) => setCommentContent(event.target.value)}
+                  />
+                  <div className="comment-composer-tools">
+                    <button type="button" className="comment-tool-btn" aria-label="Attach image" onClick={handleCommentGalleryClick}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 18 18">
+                        <rect width="13.5" height="12" x="2.25" y="3" stroke="currentColor" strokeWidth="1.5" rx="2"/>
+                        <circle cx="6.188" cy="7.313" r="1.125" fill="currentColor"/>
+                        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 11.25l-2.785-2.227a1.5 1.5 0 00-1.894.037l-3.029 2.599-1.16-.994a1.5 1.5 0 00-1.952.016L2.25 12.375"/>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
+              <button type="submit" className="comment-submit-btn comment-submit-btn-main" disabled={isSubmittingComment || Boolean(commentImageError) || (!commentContent.trim() && !commentImageFile)}>
+                {isSubmittingComment ? "Posting..." : "Post"}
+              </button>
             </div>
             {commentImageFile ? (
               <div className="comment-attachment-row">
@@ -858,9 +863,6 @@ export function TimelinePost({
               onChange={handleCommentImageChange}
               style={{ display: "none" }}
             />
-            <button type="submit" className="comment-submit-btn comment-submit-btn-main" disabled={isSubmittingComment || Boolean(commentImageError) || (!commentContent.trim() && !commentImageFile)}>
-              {isSubmittingComment ? "Posting..." : "Post"}
-            </button>
           </form>
         </div>
 
