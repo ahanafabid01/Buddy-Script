@@ -373,6 +373,10 @@ export default function FeedPage() {
     navigate(`/feed/post/${postId}`);
   };
 
+  const handleOpenPostReactions = (postId) => {
+    navigate(`/feed/post/${postId}/reactions`);
+  };
+
   const handleComposerPhotoClick = () => {
     postImageInputRef.current?.click();
   };
@@ -938,6 +942,7 @@ export default function FeedPage() {
                           onLoadMoreComments={handleLoadMoreComments}
                           onToggleCommentLike={handleToggleCommentLike}
                           onOpenComments={handleOpenPostComments}
+                          onOpenReactions={handleOpenPostReactions}
                         />
                       ))}
                     </div>

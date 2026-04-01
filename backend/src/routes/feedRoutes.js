@@ -11,6 +11,7 @@ const {
   getTopLevelCommentsForPost,
   createPost,
   togglePostLike,
+  getPostReactions,
   createComment,
   toggleCommentLike,
 } = require("../services/feedService");
@@ -121,6 +122,16 @@ router.post("/posts/:postId/likes/toggle", async (req, res, next) => {
     const postId = parsePositiveInt(req.params.postId, "postId");
     const likes = await togglePostLike(pool, postId, req.auth.userId);
     return res.json({ likes });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/posts/:postId/reactions", async (req, res, next) => {
+  try {
+    const postId = parsePositiveInt(req.params.postId, "postId");
+    const data = await getPostReactions(pool, req.auth.userId, postId);
+    return res.json(data);
   } catch (error) {
     return next(error);
   }

@@ -549,6 +549,35 @@ async function getPostLikeSummary(client, postId, viewerId) {
   };
 }
 
+async function getPostReactions(client, viewerId, postId) {
+  await assertPostReadable(client, postId, viewerId);
+
+  const { rows } = await client.query(
+    `
+      SELECT
+        pl.user_id,
+        pl.created_at,
+        u.first_name,
+        u.last_name
+      FROM post_likes pl
+      JOIN users u ON u.id = pl.user_id
+      WHERE pl.post_id = $1
+      ORDER BY pl.created_at DESC
+    `,
+    [postId],
+  );
+
+  return {
+    totalCount: rows.length,
+    reactions: rows.map((row) => ({
+      userId: Number.parseInt(row.user_id, 10),
+      fullName: `${row.first_name} ${row.last_name}`.trim(),
+      reactionType: "like",
+      createdAt: new Date(row.created_at).toISOString(),
+    })),
+  };
+}
+
 async function togglePostLike(client, postId, viewerId) {
   await assertPostReadable(client, postId, viewerId);
 
@@ -770,6 +799,7 @@ module.exports = {
   getTopLevelCommentsForPost,
   createPost,
   togglePostLike,
+  getPostReactions,
   createComment,
   toggleCommentLike,
 };

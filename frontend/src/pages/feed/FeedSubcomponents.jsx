@@ -652,6 +652,7 @@ export function TimelinePost({
   onLoadMoreComments,
   onToggleCommentLike,
   onOpenComments,
+  onOpenReactions,
 }) {
   const [commentContent, setCommentContent] = useState("");
   const [commentImageFile, setCommentImageFile] = useState(null);
@@ -780,6 +781,12 @@ export function TimelinePost({
     }
   };
 
+  const canOpenReactions = Number(post.likes?.count || 0) > 0 && typeof onOpenReactions === "function";
+  const handleOpenReactions = () => {
+    if (!canOpenReactions) return;
+    onOpenReactions(post.id);
+  };
+
   return (
     <div className="_feed_inner_timeline_post_area _b_radious6 _padd_b24 _padd_t24 _mar_b16">
       <div className="_feed_inner_timeline_content _padd_r24 _padd_l24">
@@ -814,7 +821,19 @@ export function TimelinePost({
       </div>
 
       <div className="_feed_inner_timeline_total_reacts _padd_r24 _padd_l24 _mar_b26">
-        <div className="_feed_inner_timeline_total_reacts_image">
+        <div
+          className={`_feed_inner_timeline_total_reacts_image reaction-summary-trigger ${canOpenReactions ? "is-clickable" : ""}`}
+          onClick={handleOpenReactions}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              handleOpenReactions();
+            }
+          }}
+          role={canOpenReactions ? "button" : undefined}
+          tabIndex={canOpenReactions ? 0 : undefined}
+          aria-label={canOpenReactions ? "Open reactions list" : undefined}
+        >
           <LikerAvatarStack likedBy={post.likes?.likedBy || []} totalCount={post.likes?.count || 0} size="md" />
         </div>
         <div className="_feed_inner_timeline_total_reacts_txt">
