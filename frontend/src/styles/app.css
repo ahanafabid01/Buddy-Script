@@ -810,6 +810,10 @@
   color: #7ec0ff;
 }
 
+._dark_wrapper ._feed_inner_timeline_reaction_emoji {
+  color: var(--bg2);
+}
+
 ._dark_wrapper .composer-preview-size,
 ._dark_wrapper .attachment-preview-size,
 ._dark_wrapper .comment-time,

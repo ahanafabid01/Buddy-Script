@@ -403,7 +403,7 @@ function ReactionAction({
         {!showReactionEmoji && showDefaultLikeIcon ? (
           <span className="reaction-trigger-emoji" aria-hidden="true">
             <svg className="_reaction_svg reaction-default-like-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24">
-              <path stroke="#000" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M7.5 21V9m0 12H5.25A2.25 2.25 0 013 18.75v-6A2.25 2.25 0 015.25 10.5H7.5m0 10.5h7.275c.962 0 1.794-.68 1.987-1.622l1.165-5.7A1.875 1.875 0 0016.09 11.25h-3.84a.75.75 0 01-.75-.75V7.125a3.375 3.375 0 00-3.375-3.375L7.5 10.5"/>
+              <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M7.5 21V9m0 12H5.25A2.25 2.25 0 013 18.75v-6A2.25 2.25 0 015.25 10.5H7.5m0 10.5h7.275c.962 0 1.794-.68 1.987-1.622l1.165-5.7A1.875 1.875 0 0016.09 11.25h-3.84a.75.75 0 01-.75-.75V7.125a3.375 3.375 0 00-3.375-3.375L7.5 10.5"/>
             </svg>
           </span>
         ) : null}
@@ -804,8 +804,8 @@ export function TimelinePost({
         <button type="button" className="_feed_inner_timeline_reaction_comment _feed_reaction">
           <span className="_feed_inner_timeline_reaction_link">
             <svg className="_reaction_svg" xmlns="http://www.w3.org/2000/svg" width="21" height="21" fill="none" viewBox="0 0 21 21" aria-hidden="true">
-              <path stroke="#000" d="M1 10.5c0-.464 0-.696.009-.893A9 9 0 019.607 1.01C9.804 1 10.036 1 10.5 1v0c.464 0 .696 0 .893.009a9 9 0 018.598 8.598c.009.197.009.429.009.893v6.046c0 1.36 0 2.041-.317 2.535a2 2 0 01-.602.602c-.494.317-1.174.317-2.535.317H10.5c-.464 0-.696 0-.893-.009a9 9 0 01-8.598-8.598C1 11.196 1 10.964 1 10.5v0z"/>
-              <path stroke="#000" strokeLinecap="round" strokeLinejoin="round" d="M6.938 9.313h7.125M10.5 14.063h3.563"/>
+              <path stroke="currentColor" d="M1 10.5c0-.464 0-.696.009-.893A9 9 0 019.607 1.01C9.804 1 10.036 1 10.5 1v0c.464 0 .696 0 .893.009a9 9 0 018.598 8.598c.009.197.009.429.009.893v6.046c0 1.36 0 2.041-.317 2.535a2 2 0 01-.602.602c-.494.317-1.174.317-2.535.317H10.5c-.464 0-.696 0-.893-.009a9 9 0 01-8.598-8.598C1 11.196 1 10.964 1 10.5v0z"/>
+              <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" d="M6.938 9.313h7.125M10.5 14.063h3.563"/>
             </svg>
             Comment
           </span>
@@ -813,7 +813,7 @@ export function TimelinePost({
         <button type="button" className="_feed_inner_timeline_reaction_share _feed_reaction">
           <span className="_feed_inner_timeline_reaction_link">
             <svg className="_reaction_svg" xmlns="http://www.w3.org/2000/svg" width="24" height="21" fill="none" viewBox="0 0 24 21" aria-hidden="true">
-              <path stroke="#000" strokeLinejoin="round" d="M23 10.5L12.917 1v5.429C3.267 6.429 1 13.258 1 20c2.785-3.52 5.248-5.429 11.917-5.429V20L23 10.5z"/>
+              <path stroke="currentColor" strokeLinejoin="round" d="M23 10.5L12.917 1v5.429C3.267 6.429 1 13.258 1 20c2.785-3.52 5.248-5.429 11.917-5.429V20L23 10.5z"/>
             </svg>
             Share
           </span>
