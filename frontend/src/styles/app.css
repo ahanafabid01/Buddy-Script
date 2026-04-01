@@ -358,6 +358,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
 
 .comment-avatar-wrap {
@@ -430,12 +431,29 @@
 
 .comment-submit-btn-main {
   margin-top: 0;
+  height: 46px;
+  padding: 0 18px;
   border-radius: 12px;
   background: #157cf6;
   border-color: #157cf6;
   color: #fff;
-  min-width: 76px;
+  min-width: 108px;
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.comment-submit-btn-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.comment-submit-btn-text {
+  line-height: 1;
 }
 
 .comment-submit-btn-main:disabled {
@@ -708,12 +726,14 @@
 
 @media only screen and (max-width: 767px) {
   .comment-composer-main {
-    align-items: flex-start;
-    flex-direction: column;
+    align-items: center;
+    flex-direction: row;
   }
 
   .comment-composer-row {
-    width: 100%;
+    width: auto;
+    flex: 1;
+    min-width: 0;
   }
 
   .comment-composer-input-wrap,
@@ -722,8 +742,16 @@
   }
 
   .comment-submit-btn-main {
-    min-width: 100%;
-    padding: 6px 10px;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    padding: 0;
+    gap: 0;
+  }
+
+  .comment-submit-btn-text {
+    display: none;
   }
 
   .comment-thread {

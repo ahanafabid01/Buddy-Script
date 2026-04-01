@@ -847,7 +847,11 @@ export function TimelinePost({
                 </div>
               </div>
               <button type="submit" className="comment-submit-btn comment-submit-btn-main" disabled={isSubmittingComment || Boolean(commentImageError) || (!commentContent.trim() && !commentImageFile)}>
-                {isSubmittingComment ? "Posting..." : "Post"}
+                <svg className="comment-submit-btn-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M21 3L10 14"/>
+                  <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M21 3l-7 18-4-7-7-4 18-7z"/>
+                </svg>
+                <span className="comment-submit-btn-text">{isSubmittingComment ? "Posting..." : "Post"}</span>
               </button>
             </div>
             {commentImageFile ? (
