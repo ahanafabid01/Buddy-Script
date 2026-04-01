@@ -744,6 +744,11 @@ export default function FeedPage() {
                                 <a href="#0" className="_feed_inner_ppl_card_area_link">
                                   <div className={story.active ? "_feed_inner_ppl_card_area_story_active" : "_feed_inner_ppl_card_area_story"}>
                                     <img src={story.image} alt="Image" className={story.yourStory ? "_card_story_img" : "_card_story_img1"} />
+                                    {story.yourStory ? (
+                                      <div className="_feed_inner_ppl_btn">
+                                        <button type="button" className="_feed_inner_ppl_btn_link" aria-label="Add story">+</button>
+                                      </div>
+                                    ) : null}
                                   </div>
                                   <p className={story.yourStory ? "_feed_inner_ppl_card_area_link_txt" : "_feed_inner_ppl_card_area_txt"}>{story.yourStory ? "Your Story" : "Ryan..."}</p>
                                 </a>

@@ -383,6 +383,34 @@
   cursor: pointer;
 }
 
+._feed_inner_ppl_btn {
+  z-index: 2;
+}
+
+._feed_inner_ppl_btn_link {
+  color: #fff;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0;
+}
+
+._feed_inner_story_btn_link {
+  color: #fff;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+._feed_inner_story_btn_link:hover,
+._feed_inner_story_btn_link:focus {
+  color: #fff;
+}
+
 .comment-submit-btn:disabled {
   opacity: 0.65;
   cursor: not-allowed;
