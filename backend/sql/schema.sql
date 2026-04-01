@@ -25,9 +25,29 @@ CREATE TABLE IF NOT EXISTS comments (
   post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   parent_comment_id BIGINT REFERENCES comments(id) ON DELETE CASCADE,
-  body TEXT NOT NULL CHECK (char_length(trim(body)) > 0),
+  body TEXT,
+  image_url TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE comments
+ADD COLUMN IF NOT EXISTS image_url TEXT;
+
+ALTER TABLE comments
+ALTER COLUMN body DROP NOT NULL;
+
+ALTER TABLE comments
+DROP CONSTRAINT IF EXISTS comments_body_check;
+
+ALTER TABLE comments
+DROP CONSTRAINT IF EXISTS comments_body_or_image_check;
+
+ALTER TABLE comments
+ADD CONSTRAINT comments_body_or_image_check
+CHECK (
+  (body IS NOT NULL AND char_length(trim(body)) > 0)
+  OR image_url IS NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS post_likes (

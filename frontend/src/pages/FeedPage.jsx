@@ -211,14 +211,15 @@ export default function FeedPage() {
     }
   };
 
-  const handleCreateComment = async ({ postId, content, parentCommentId = null }) => {
+  const handleCreateComment = async ({ postId, content, parentCommentId = null, imageFile = null }) => {
     const trimmedContent = content.trim();
-    if (!trimmedContent) return;
+    if (!trimmedContent && !imageFile) return;
 
     try {
       const data = await createFeedComment(postId, {
-        content: trimmedContent,
+        content: trimmedContent || null,
         parentCommentId,
+        imageFile,
       });
 
       if (!data?.comment) return;

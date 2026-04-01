@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { resolveApiUrl } from "../../api/client";
 
 export function HeaderNavIcon({ name, active = false, className = "" }) {
   if (name === "search") {
@@ -378,9 +379,11 @@ function ReactionAction({
 function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommentLike }) {
   const [showReplyInput, setShowReplyInput] = useState(false);
   const [replyContent, setReplyContent] = useState("");
+  const [replyImageFile, setReplyImageFile] = useState(null);
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
   const [showReplies, setShowReplies] = useState(true);
   const [commentReaction, setCommentReaction] = useState(comment.likes?.likedByViewer ? "like" : null);
+  const replyImageInputRef = useRef(null);
 
   const replyCount = (comment.replies || []).length;
   const commentTime = formatTimeAgo(comment.createdAt);
@@ -420,7 +423,7 @@ function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommen
   const handleReplySubmit = async (event) => {
     event.preventDefault();
     const trimmedReply = replyContent.trim();
-    if (!trimmedReply || isSubmittingReply) return;
+    if ((!trimmedReply && !replyImageFile) || isSubmittingReply) return;
 
     try {
       setIsSubmittingReply(true);
@@ -428,11 +431,32 @@ function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommen
         postId,
         content: trimmedReply,
         parentCommentId: comment.id,
+        imageFile: replyImageFile,
       });
       setReplyContent("");
+      setReplyImageFile(null);
+      if (replyImageInputRef.current) {
+        replyImageInputRef.current.value = "";
+      }
       setShowReplyInput(false);
     } finally {
       setIsSubmittingReply(false);
+    }
+  };
+
+  const handleReplyGalleryClick = () => {
+    replyImageInputRef.current?.click();
+  };
+
+  const handleReplyImageChange = (event) => {
+    const selectedFile = event.target.files?.[0] || null;
+    setReplyImageFile(selectedFile);
+  };
+
+  const handleReplyImageRemove = () => {
+    setReplyImageFile(null);
+    if (replyImageInputRef.current) {
+      replyImageInputRef.current.value = "";
     }
   };
 
@@ -445,7 +469,12 @@ function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommen
         <div className="comment-thread-body">
           <div className="comment-bubble" title={likedByText(comment.likes?.likedBy)}>
             <p className="comment-author">{comment.author?.fullName || "Unknown"}</p>
-            <p className="comment-thread-text">{comment.content}</p>
+            {comment.content ? <p className="comment-thread-text">{comment.content}</p> : null}
+            {comment.imageUrl ? (
+              <div className="comment-image-wrap">
+                <img src={resolveApiUrl(comment.imageUrl)} alt="Comment attachment" className="comment-image" />
+              </div>
+            ) : null}
           </div>
           <div className="comment-thread-meta">
             <ReactionAction
@@ -466,12 +495,41 @@ function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommen
           </div>
           {showReplyInput ? (
             <form onSubmit={handleReplySubmit} className="reply-composer">
-              <textarea className="form-control _comment_textarea" placeholder="Write a reply" value={replyContent} onChange={(event) => setReplyContent(event.target.value)} />
+              <div className="reply-composer-input-wrap">
+                <textarea
+                  className="form-control _comment_textarea reply-composer-textarea"
+                  placeholder="Write a reply"
+                  value={replyContent}
+                  onChange={(event) => setReplyContent(event.target.value)}
+                />
+                <div className="reply-composer-tools">
+                  <button type="button" className="comment-tool-btn" aria-label="Attach image" onClick={handleReplyGalleryClick}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 18 18">
+                      <rect width="13.5" height="12" x="2.25" y="3" stroke="currentColor" strokeWidth="1.5" rx="2"/>
+                      <circle cx="6.188" cy="7.313" r="1.125" fill="currentColor"/>
+                      <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 11.25l-2.785-2.227a1.5 1.5 0 00-1.894.037l-3.029 2.599-1.16-.994a1.5 1.5 0 00-1.952.016L2.25 12.375"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              {replyImageFile ? (
+                <div className="reply-attachment-row">
+                  <span className="comment-attachment-chip" title={replyImageFile.name}>{replyImageFile.name}</span>
+                  <button type="button" className="comment-attachment-remove" onClick={handleReplyImageRemove}>Remove</button>
+                </div>
+              ) : null}
+              <input
+                ref={replyImageInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                onChange={handleReplyImageChange}
+                style={{ display: "none" }}
+              />
               <div className="reply-composer-actions">
                 <button type="button" className="comment-link-btn" onClick={() => setShowReplyInput(false)}>
                   Cancel
                 </button>
-                <button type="submit" className="comment-submit-btn" disabled={isSubmittingReply || replyContent.trim().length === 0}>
+                <button type="submit" className="comment-submit-btn" disabled={isSubmittingReply || (!replyContent.trim() && !replyImageFile)}>
                   {isSubmittingReply ? "Replying..." : "Reply"}
                 </button>
               </div>
@@ -511,9 +569,11 @@ export function TimelinePost({
   onToggleCommentLike,
 }) {
   const [commentContent, setCommentContent] = useState("");
+  const [commentImageFile, setCommentImageFile] = useState(null);
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [visibleTopLevelComments, setVisibleTopLevelComments] = useState(2);
   const [postReaction, setPostReaction] = useState(post.likes?.likedByViewer ? "like" : null);
+  const commentImageInputRef = useRef(null);
 
   const authorName = post.author?.fullName || post.author || "Unknown";
   const visibilityLabel = post.visibility === "private" ? "Private" : "Public";
@@ -556,7 +616,7 @@ export function TimelinePost({
   const handleCommentSubmit = async (event) => {
     event.preventDefault();
     const trimmedComment = commentContent.trim();
-    if (!trimmedComment || isSubmittingComment) return;
+    if ((!trimmedComment && !commentImageFile) || isSubmittingComment) return;
 
     try {
       setIsSubmittingComment(true);
@@ -564,10 +624,31 @@ export function TimelinePost({
         postId: post.id,
         content: trimmedComment,
         parentCommentId: null,
+        imageFile: commentImageFile,
       });
       setCommentContent("");
+      setCommentImageFile(null);
+      if (commentImageInputRef.current) {
+        commentImageInputRef.current.value = "";
+      }
     } finally {
       setIsSubmittingComment(false);
+    }
+  };
+
+  const handleCommentGalleryClick = () => {
+    commentImageInputRef.current?.click();
+  };
+
+  const handleCommentImageChange = (event) => {
+    const selectedFile = event.target.files?.[0] || null;
+    setCommentImageFile(selectedFile);
+  };
+
+  const handleCommentImageRemove = () => {
+    setCommentImageFile(null);
+    if (commentImageInputRef.current) {
+      commentImageInputRef.current.value = "";
     }
   };
 
@@ -658,12 +739,7 @@ export function TimelinePost({
                   onChange={(event) => setCommentContent(event.target.value)}
                 />
                 <div className="comment-composer-tools">
-                  <button type="button" className="comment-tool-btn" aria-label="Voice comment">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 18 18">
-                      <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 2.25a2.25 2.25 0 012.25 2.25v4.5a2.25 2.25 0 11-4.5 0V4.5A2.25 2.25 0 019 2.25zM4.5 8.25a4.5 4.5 0 009 0m-4.5 4.5V15.75m-2.25 0h4.5"/>
-                    </svg>
-                  </button>
-                  <button type="button" className="comment-tool-btn" aria-label="Attach image">
+                  <button type="button" className="comment-tool-btn" aria-label="Attach image" onClick={handleCommentGalleryClick}>
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 18 18">
                       <rect width="13.5" height="12" x="2.25" y="3" stroke="currentColor" strokeWidth="1.5" rx="2"/>
                       <circle cx="6.188" cy="7.313" r="1.125" fill="currentColor"/>
@@ -673,7 +749,20 @@ export function TimelinePost({
                 </div>
               </div>
             </div>
-            <button type="submit" className="comment-submit-btn comment-submit-btn-main" disabled={isSubmittingComment || commentContent.trim().length === 0}>
+            {commentImageFile ? (
+              <div className="comment-attachment-row">
+                <span className="comment-attachment-chip" title={commentImageFile.name}>{commentImageFile.name}</span>
+                <button type="button" className="comment-attachment-remove" onClick={handleCommentImageRemove}>Remove</button>
+              </div>
+            ) : null}
+            <input
+              ref={commentImageInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              onChange={handleCommentImageChange}
+              style={{ display: "none" }}
+            />
+            <button type="submit" className="comment-submit-btn comment-submit-btn-main" disabled={isSubmittingComment || (!commentContent.trim() && !commentImageFile)}>
               {isSubmittingComment ? "Posting..." : "Post"}
             </button>
           </form>

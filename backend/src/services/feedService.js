@@ -53,6 +53,7 @@ function mapCommentRow(row) {
       ? Number.parseInt(row.parent_comment_id, 10)
       : null,
     content: row.body,
+    imageUrl: row.image_url,
     createdAt: new Date(row.created_at).toISOString(),
     author: {
       id: Number.parseInt(row.user_id, 10),
@@ -121,6 +122,7 @@ const commentSelect = `
     c.post_id,
     c.parent_comment_id,
     c.body,
+    c.image_url,
     c.created_at,
     c.user_id,
     u.first_name,
@@ -441,7 +443,11 @@ async function toggleCommentLike(client, commentId, viewerId) {
 }
 
 async function createComment(client, input) {
-  const { postId, viewerId, content, parentCommentId } = input;
+  const { postId, viewerId, content, parentCommentId, imageUrl } = input;
+
+  if (!content && !imageUrl) {
+    throw httpError(400, "Comment must include text or an image");
+  }
 
   await assertPostReadable(client, postId, viewerId);
 
@@ -462,11 +468,11 @@ async function createComment(client, input) {
 
   const { rows } = await client.query(
     `
-      INSERT INTO comments (post_id, user_id, parent_comment_id, body)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO comments (post_id, user_id, parent_comment_id, body, image_url)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING id
     `,
-    [postId, viewerId, parentCommentId || null, content],
+    [postId, viewerId, parentCommentId || null, content || null, imageUrl || null],
   );
 
   const commentId = Number.parseInt(rows[0].id, 10);
@@ -477,6 +483,7 @@ async function createComment(client, input) {
         c.post_id,
         c.parent_comment_id,
         c.body,
+        c.image_url,
         c.created_at,
         c.user_id,
         u.first_name,

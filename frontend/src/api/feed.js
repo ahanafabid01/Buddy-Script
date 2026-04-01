@@ -40,11 +40,27 @@ export function toggleFeedPostLike(postId) {
   });
 }
 
-export function createFeedComment(postId, { content, parentCommentId = null }) {
+export function createFeedComment(postId, { content, parentCommentId = null, imageFile = null }) {
+  if (imageFile) {
+    const formData = new FormData();
+    if (content && content.trim().length > 0) {
+      formData.append("content", content.trim());
+    }
+    if (parentCommentId !== null && parentCommentId !== undefined) {
+      formData.append("parentCommentId", String(parentCommentId));
+    }
+    formData.append("image", imageFile);
+
+    return apiRequest(`/feed/posts/${postId}/comments`, {
+      method: "POST",
+      body: formData,
+    });
+  }
+
   return apiRequest(`/feed/posts/${postId}/comments`, {
     method: "POST",
     body: {
-      content,
+      content: content?.trim() || null,
       parentCommentId,
     },
   });

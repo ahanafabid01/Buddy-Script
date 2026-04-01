@@ -23,7 +23,7 @@ const createPostSchema = z.object({
 });
 
 const createCommentSchema = z.object({
-  content: z.string().trim().min(1).max(2000),
+  content: z.string().trim().max(2000).optional(),
   parentCommentId: z.number().int().positive().nullable().optional(),
 });
 
@@ -106,11 +106,12 @@ router.post("/posts/:postId/likes/toggle", async (req, res, next) => {
   }
 });
 
-router.post("/posts/:postId/comments", async (req, res, next) => {
+router.post("/posts/:postId/comments", upload.single("image"), async (req, res, next) => {
   try {
     const postId = parsePositiveInt(req.params.postId, "postId");
+    const content = typeof req.body.content === "string" ? req.body.content.trim() : "";
     const parsed = createCommentSchema.parse({
-      content: req.body.content,
+      content,
       parentCommentId:
         req.body.parentCommentId === undefined ||
         req.body.parentCommentId === null ||
@@ -119,15 +120,21 @@ router.post("/posts/:postId/comments", async (req, res, next) => {
           : Number.parseInt(req.body.parentCommentId, 10),
     });
 
+    if (!content && !req.file) {
+      throw httpError(400, "Comment must include text or an image");
+    }
+
     const comment = await createComment(pool, {
       postId,
       viewerId: req.auth.userId,
-      content: parsed.content,
+      content: parsed.content || null,
       parentCommentId: parsed.parentCommentId || null,
+      imageUrl: req.file ? `/uploads/${req.file.filename}` : null,
     });
 
     return res.status(201).json({ comment });
   } catch (error) {
+    await removeFileIfExists(req.file?.path);
     return next(error);
   }
 });
