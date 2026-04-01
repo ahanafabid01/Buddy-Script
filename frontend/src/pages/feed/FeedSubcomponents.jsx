@@ -272,6 +272,7 @@ function ReactionAction({
   className = "",
   labelClassName = "",
   compact = false,
+  showDefaultLikeIcon = false,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const openTimerRef = useRef(null);
@@ -340,6 +341,13 @@ function ReactionAction({
         {showReactionEmoji ? (
           <span className="reaction-trigger-emoji" aria-hidden="true">
             <span className="reaction-trigger-glyph">{activeReaction.glyph}</span>
+          </span>
+        ) : null}
+        {!showReactionEmoji && showDefaultLikeIcon ? (
+          <span className="reaction-trigger-emoji" aria-hidden="true">
+            <svg className="_reaction_svg" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 20 20">
+              <path stroke="#000" strokeLinecap="round" strokeLinejoin="round" d="M7.083 8.333v9.167M10.417 8.333l2.5-5a2.5 2.5 0 014.583 1.667l-.833 3.333h2.083a1.667 1.667 0 011.625 2.042l-1.25 5A1.667 1.667 0 0117.5 16.667h-7.083V8.333zM3.75 8.333h3.333v8.334H3.75A1.667 1.667 0 012.083 15V10A1.667 1.667 0 013.75 8.333z"/>
+            </svg>
           </span>
         ) : null}
         <span className={labelClassName}>{isActive ? activeReaction.label : "Like"}</span>
@@ -599,6 +607,7 @@ export function TimelinePost({
           onToggleDefault={handlePostReactionToggle}
           className={`_feed_inner_timeline_reaction_emoji _feed_reaction ${post.likes?.likedByViewer ? "_feed_reaction_active" : ""}`}
           labelClassName="_feed_inner_timeline_reaction_link"
+          showDefaultLikeIcon
         />
         <button type="button" className="_feed_inner_timeline_reaction_comment _feed_reaction">
           <span className="_feed_inner_timeline_reaction_link">
