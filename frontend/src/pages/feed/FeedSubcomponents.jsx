@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export function HeaderNavIcon({ name, active = false, className = "" }) {
   if (name === "search") {
@@ -222,21 +222,104 @@ function likedByText(likedBy = []) {
   return likedBy.map((entry) => entry.name).join(", ");
 }
 
-function likedBySummary(likedBy = [], totalCount = 0) {
-  if (!Array.isArray(likedBy) || likedBy.length === 0 || totalCount === 0) {
-    return "No likes yet";
-  }
+function initialsFromName(name = "") {
+  const parts = String(name)
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length === 0) return "U";
+  if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
+  return `${parts[0].slice(0, 1)}${parts[1].slice(0, 1)}`.toUpperCase();
+}
 
-  if (totalCount === 1) {
-    return `Liked by ${likedBy[0].name}`;
-  }
+function LikerAvatarStack({ likedBy = [], totalCount = 0, size = "md" }) {
+  if (!Array.isArray(likedBy) || likedBy.length === 0 || totalCount === 0) return null;
 
-  if (totalCount === 2 && likedBy.length >= 2) {
-    return `Liked by ${likedBy[0].name} and ${likedBy[1].name}`;
-  }
+  const visible = likedBy.slice(0, 3);
+  const remaining = Math.max(totalCount - visible.length, 0);
 
-  const remaining = Math.max(totalCount - 2, 0);
-  return `Liked by ${likedBy[0].name}, ${likedBy[1]?.name || "others"}${remaining > 0 ? ` and ${remaining} others` : ""}`;
+  return (
+    <div className={`liker-avatar-stack size-${size}`} title={likedByText(likedBy)}>
+      {visible.map((entry, index) => (
+        <span key={`${entry.name}-${index}`} className="liker-avatar-chip" aria-hidden="true">
+          {initialsFromName(entry.name)}
+        </span>
+      ))}
+      {remaining > 0 ? <span className="liker-avatar-chip liker-avatar-more">+{remaining}</span> : null}
+    </div>
+  );
+}
+
+const REACTION_OPTIONS = [
+  { id: "like", emoji: "👍", label: "Like" },
+  { id: "love", emoji: "❤️", label: "Love" },
+  { id: "care", emoji: "🥰", label: "Care" },
+  { id: "haha", emoji: "😄", label: "Haha" },
+  { id: "wow", emoji: "😮", label: "Wow" },
+  { id: "sad", emoji: "😢", label: "Sad" },
+  { id: "angry", emoji: "😡", label: "Angry" },
+];
+
+function findReactionById(reactionId) {
+  return REACTION_OPTIONS.find((option) => option.id === reactionId) || REACTION_OPTIONS[0];
+}
+
+function ReactionAction({
+  selectedReaction,
+  isActive,
+  onSelectReaction,
+  onToggleDefault,
+  className = "",
+  labelClassName = "",
+  compact = false,
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const activeReaction = selectedReaction ? findReactionById(selectedReaction) : findReactionById("like");
+  const showReactionEmoji = Boolean(isActive && selectedReaction);
+
+  return (
+    <div
+      className={`reaction-action ${compact ? "is-compact" : ""}`}
+      onMouseEnter={() => setMenuOpen(true)}
+      onMouseLeave={() => setMenuOpen(false)}
+    >
+      <button
+        type="button"
+        className={className}
+        onClick={(event) => {
+          event.preventDefault();
+          const isTouchDevice = typeof window !== "undefined" && window.matchMedia("(hover: none)").matches;
+          if (isTouchDevice && !menuOpen) {
+            setMenuOpen(true);
+            return;
+          }
+          onToggleDefault();
+        }}
+      >
+        {showReactionEmoji ? <span className="reaction-trigger-emoji" aria-hidden="true">{activeReaction.emoji}</span> : null}
+        <span className={labelClassName}>{isActive ? activeReaction.label : "Like"}</span>
+      </button>
+
+      <div className={`reaction-picker ${menuOpen ? "show" : ""}`}>
+        {REACTION_OPTIONS.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            className={`reaction-option ${selectedReaction === option.id ? "is-selected" : ""}`}
+            aria-label={option.label}
+            title={option.label}
+            onClick={(event) => {
+              event.preventDefault();
+              onSelectReaction(option.id);
+              setMenuOpen(false);
+            }}
+          >
+            <span>{option.emoji}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommentLike }) {
@@ -244,9 +327,35 @@ function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommen
   const [replyContent, setReplyContent] = useState("");
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
   const [showReplies, setShowReplies] = useState(true);
+  const [commentReaction, setCommentReaction] = useState(comment.likes?.likedByViewer ? "like" : null);
 
   const replyCount = (comment.replies || []).length;
   const commentTime = formatTimeAgo(comment.createdAt);
+
+  useEffect(() => {
+    if (!comment.likes?.likedByViewer) {
+      setCommentReaction(null);
+    } else if (!commentReaction) {
+      setCommentReaction("like");
+    }
+  }, [comment.likes?.likedByViewer, commentReaction]);
+
+  const handleCommentReactionSelect = async (reactionId) => {
+    if (!comment.likes?.likedByViewer) {
+      await onToggleCommentLike(comment.id);
+    }
+    setCommentReaction(reactionId);
+  };
+
+  const handleCommentReactionToggle = async () => {
+    if (comment.likes?.likedByViewer) {
+      await onToggleCommentLike(comment.id);
+      setCommentReaction(null);
+      return;
+    }
+    await onToggleCommentLike(comment.id);
+    setCommentReaction("like");
+  };
 
   const handleReplySubmit = async (event) => {
     event.preventDefault();
@@ -279,18 +388,20 @@ function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommen
             <p className="comment-thread-text">{comment.content}</p>
           </div>
           <div className="comment-thread-meta">
-            <button
-              type="button"
+            <ReactionAction
+              selectedReaction={commentReaction}
+              isActive={Boolean(comment.likes?.likedByViewer)}
+              onSelectReaction={handleCommentReactionSelect}
+              onToggleDefault={handleCommentReactionToggle}
               className={`comment-link-btn ${comment.likes?.likedByViewer ? "is-active" : ""}`}
-              onClick={() => onToggleCommentLike(comment.id)}
-            >
-              {comment.likes?.likedByViewer ? "Unlike" : "Like"}
-            </button>
+              labelClassName="comment-link-btn"
+              compact
+            />
             <button type="button" className="comment-link-btn" onClick={() => setShowReplyInput((previous) => !previous)}>
               Reply
             </button>
             <span className="comment-time">{commentTime}</span>
-            {(comment.likes?.count || 0) > 0 ? <span className="comment-like-pill">{comment.likes.count}</span> : null}
+            <LikerAvatarStack likedBy={comment.likes?.likedBy || []} totalCount={comment.likes?.count || 0} size="sm" />
           </div>
           {showReplyInput ? (
             <form onSubmit={handleReplySubmit} className="reply-composer">
@@ -341,12 +452,38 @@ export function TimelinePost({
   const [commentContent, setCommentContent] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [visibleTopLevelComments, setVisibleTopLevelComments] = useState(2);
+  const [postReaction, setPostReaction] = useState(post.likes?.likedByViewer ? "like" : null);
 
   const authorName = post.author?.fullName || post.author || "Unknown";
   const visibilityLabel = post.visibility === "private" ? "Private" : "Public";
   const topLevelComments = post.comments || [];
   const hiddenTopLevelCount = Math.max(topLevelComments.length - visibleTopLevelComments, 0);
   const visibleComments = hiddenTopLevelCount > 0 ? topLevelComments.slice(hiddenTopLevelCount) : topLevelComments;
+
+  useEffect(() => {
+    if (!post.likes?.likedByViewer) {
+      setPostReaction(null);
+    } else if (!postReaction) {
+      setPostReaction("like");
+    }
+  }, [post.likes?.likedByViewer, postReaction]);
+
+  const handlePostReactionSelect = async (reactionId) => {
+    if (!post.likes?.likedByViewer) {
+      await onTogglePostLike(post.id);
+    }
+    setPostReaction(reactionId);
+  };
+
+  const handlePostReactionToggle = async () => {
+    if (post.likes?.likedByViewer) {
+      await onTogglePostLike(post.id);
+      setPostReaction(null);
+      return;
+    }
+    await onTogglePostLike(post.id);
+    setPostReaction("like");
+  };
 
   const handleCommentSubmit = async (event) => {
     event.preventDefault();
@@ -401,32 +538,23 @@ export function TimelinePost({
 
       <div className="_feed_inner_timeline_total_reacts _padd_r24 _padd_l24 _mar_b26">
         <div className="_feed_inner_timeline_total_reacts_image">
-          <img src="/assets/images/react_img1.png" alt="Image" className="_react_img1" />
-          <img src="/assets/images/react_img2.png" alt="Image" className="_react_img" />
-          <img src="/assets/images/react_img3.png" alt="Image" className="_react_img _rect_img_mbl_none" />
-          <img src="/assets/images/react_img4.png" alt="Image" className="_react_img _rect_img_mbl_none" />
-          <img src="/assets/images/react_img5.png" alt="Image" className="_react_img _rect_img_mbl_none" />
-          <p className="_feed_inner_timeline_total_reacts_para" title={likedByText(post.likes?.likedBy)}>{post.likes?.count || 0}</p>
+          <LikerAvatarStack likedBy={post.likes?.likedBy || []} totalCount={post.likes?.count || 0} size="md" />
         </div>
         <div className="_feed_inner_timeline_total_reacts_txt">
           <p className="_feed_inner_timeline_total_reacts_para1"><span>{post.commentCount || 0}</span> Comment</p>
           <p className="_feed_inner_timeline_total_reacts_para2"><span>{post.shares || 0}</span> Share</p>
         </div>
       </div>
-      <div className="_padd_r24 _padd_l24">
-        <p className="liked-by-block" title={likedByText(post.likes?.likedBy)}>
-          {likedBySummary(post.likes?.likedBy, post.likes?.count || 0)}
-        </p>
-      </div>
 
       <div className="_feed_inner_timeline_reaction">
-        <button
-          type="button"
+        <ReactionAction
+          selectedReaction={postReaction}
+          isActive={Boolean(post.likes?.likedByViewer)}
+          onSelectReaction={handlePostReactionSelect}
+          onToggleDefault={handlePostReactionToggle}
           className={`_feed_inner_timeline_reaction_emoji _feed_reaction ${post.likes?.likedByViewer ? "_feed_reaction_active" : ""}`}
-          onClick={() => onTogglePostLike(post.id)}
-        >
-          <span className="_feed_inner_timeline_reaction_link">{post.likes?.likedByViewer ? "Unlike" : "Like"}</span>
-        </button>
+          labelClassName="_feed_inner_timeline_reaction_link"
+        />
         <button type="button" className="_feed_inner_timeline_reaction_comment _feed_reaction">
           <span className="_feed_inner_timeline_reaction_link">Comment</span>
         </button>
