@@ -1,4 +1,3 @@
-const fs = require("fs/promises");
 const express = require("express");
 const { z } = require("zod");
 const pool = require("../db/pool");
@@ -42,13 +41,10 @@ function parsePositiveInt(value, fieldName) {
   return parsed;
 }
 
-async function removeFileIfExists(filePath) {
-  if (!filePath) return;
-  try {
-    await fs.unlink(filePath);
-  } catch (_error) {
-    // Ignore cleanup failures
-  }
+function fileToDataUrl(file) {
+  if (!file) return null;
+  const mimeType = String(file.mimetype || "application/octet-stream");
+  return `data:${mimeType};base64,${file.buffer.toString("base64")}`;
 }
 
 router.get("/posts", async (req, res, next) => {
@@ -91,7 +87,7 @@ router.post("/posts", upload.single("image"), async (req, res, next) => {
       visibility: req.body.visibility || "public",
     });
 
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+    const imageUrl = fileToDataUrl(req.file);
     const postId = await createPost(pool, {
       userId: req.auth.userId,
       content: parsed.content,
@@ -102,7 +98,6 @@ router.post("/posts", upload.single("image"), async (req, res, next) => {
     const posts = await getPostsByIds(pool, req.auth.userId, [postId]);
     return res.status(201).json({ post: posts[0] });
   } catch (error) {
-    await removeFileIfExists(req.file?.path);
     return next(error);
   }
 });
@@ -198,12 +193,11 @@ router.post("/posts/:postId/comments", upload.single("image"), async (req, res, 
       viewerId: req.auth.userId,
       content: parsed.content || null,
       parentCommentId: parsed.parentCommentId || null,
-      imageUrl: req.file ? `/uploads/${req.file.filename}` : null,
+      imageUrl: fileToDataUrl(req.file),
     });
 
     return res.status(201).json({ comment });
   } catch (error) {
-    await removeFileIfExists(req.file?.path);
     return next(error);
   }
 });

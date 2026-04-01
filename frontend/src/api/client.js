@@ -21,6 +21,7 @@ function getCookieValue(name) {
 export function resolveApiUrl(path) {
   if (!path) return null;
   if (/^https?:\/\//i.test(path)) return path;
+  if (/^(data|blob):/i.test(path)) return path;
   return `${API_ORIGIN}${path.startsWith("/") ? path : `/${path}`}`;
 }
 

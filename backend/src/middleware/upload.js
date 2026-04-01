@@ -1,21 +1,8 @@
-const crypto = require("crypto");
-const fs = require("fs");
-const path = require("path");
 const multer = require("multer");
 const env = require("../config/env");
 const httpError = require("../utils/httpError");
 
-fs.mkdirSync(env.uploadDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, callback) => {
-    callback(null, env.uploadDir);
-  },
-  filename: (_req, file, callback) => {
-    const safeExtension = path.extname(file.originalname).toLowerCase();
-    callback(null, `${crypto.randomUUID()}${safeExtension}`);
-  },
-});
+const storage = multer.memoryStorage();
 
 const allowedMimeTypes = new Set([
   "image/jpeg",
