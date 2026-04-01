@@ -251,13 +251,13 @@ function LikerAvatarStack({ likedBy = [], totalCount = 0, size = "md" }) {
 }
 
 const REACTION_OPTIONS = [
-  { id: "like", emoji: "👍", label: "Like" },
-  { id: "love", emoji: "❤️", label: "Love" },
-  { id: "care", emoji: "🥰", label: "Care" },
-  { id: "haha", emoji: "😄", label: "Haha" },
-  { id: "wow", emoji: "😮", label: "Wow" },
-  { id: "sad", emoji: "😢", label: "Sad" },
-  { id: "angry", emoji: "😡", label: "Angry" },
+  { id: "like", glyph: "👍", label: "Like" },
+  { id: "love", glyph: "❤️", label: "Love" },
+  { id: "care", glyph: "🤗", label: "Care" },
+  { id: "haha", glyph: "😆", label: "Haha" },
+  { id: "wow", glyph: "😮", label: "Wow" },
+  { id: "sad", glyph: "😢", label: "Sad" },
+  { id: "angry", glyph: "😡", label: "Angry" },
 ];
 
 function findReactionById(reactionId) {
@@ -296,7 +296,11 @@ function ReactionAction({
           onToggleDefault();
         }}
       >
-        {showReactionEmoji ? <span className="reaction-trigger-emoji" aria-hidden="true">{activeReaction.emoji}</span> : null}
+        {showReactionEmoji ? (
+          <span className="reaction-trigger-emoji" aria-hidden="true">
+            <span className="reaction-trigger-glyph">{activeReaction.glyph}</span>
+          </span>
+        ) : null}
         <span className={labelClassName}>{isActive ? activeReaction.label : "Like"}</span>
       </button>
 
@@ -314,7 +318,7 @@ function ReactionAction({
               setMenuOpen(false);
             }}
           >
-            <span>{option.emoji}</span>
+            <span className="reaction-option-glyph">{option.glyph}</span>
           </button>
         ))}
       </div>
