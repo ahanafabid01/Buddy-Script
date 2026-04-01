@@ -20,7 +20,7 @@ services:
       - key: JWT_EXPIRES_IN
         value: 7d
       - key: CLIENT_ORIGIN
-        sync: false
+        value: https://buddy-script-brown.vercel.app
       - key: COOKIE_SAME_SITE
         value: none
       - key: COOKIE_NAME
