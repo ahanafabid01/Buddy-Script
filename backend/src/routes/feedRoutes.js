@@ -101,6 +101,21 @@ router.post("/posts", upload.single("image"), async (req, res, next) => {
   }
 });
 
+router.get("/posts/:postId", async (req, res, next) => {
+  try {
+    const postId = parsePositiveInt(req.params.postId, "postId");
+    const posts = await getPostsByIds(pool, req.auth.userId, [postId]);
+
+    if (posts.length === 0) {
+      throw httpError(404, "Post not found");
+    }
+
+    return res.json({ post: posts[0] });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 router.post("/posts/:postId/likes/toggle", async (req, res, next) => {
   try {
     const postId = parsePositiveInt(req.params.postId, "postId");

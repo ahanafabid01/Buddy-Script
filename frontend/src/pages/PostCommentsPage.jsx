@@ -1,0 +1,246 @@
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { resolveApiUrl } from "../api/client";
+import {
+  createFeedComment,
+  getFeedPost,
+  getFeedPostComments,
+  toggleFeedCommentLike,
+  toggleFeedPostLike,
+} from "../api/feed";
+import { TimelinePost } from "./feed/FeedSubcomponents";
+
+function normalizePost(post) {
+  return {
+    ...post,
+    imageUrl: resolveApiUrl(post.imageUrl),
+    topLevelCommentCount: Number.isFinite(post.topLevelCommentCount)
+      ? post.topLevelCommentCount
+      : Array.isArray(post.comments)
+        ? post.comments.length
+        : 0,
+    commentPagination: post.commentPagination || {
+      hasMore: false,
+      nextCursor: null,
+      pageSize: 2,
+    },
+    comments: Array.isArray(post.comments) ? post.comments : [],
+  };
+}
+
+function insertCommentInTree(comments, newComment) {
+  if (!newComment.parentCommentId) {
+    return [...comments, { ...newComment, replies: newComment.replies || [] }];
+  }
+
+  return comments.map((comment) => {
+    if (comment.id === newComment.parentCommentId) {
+      return {
+        ...comment,
+        replies: [...(comment.replies || []), { ...newComment, replies: newComment.replies || [] }],
+      };
+    }
+
+    if (!comment.replies || comment.replies.length === 0) {
+      return comment;
+    }
+
+    return {
+      ...comment,
+      replies: insertCommentInTree(comment.replies, newComment),
+    };
+  });
+}
+
+function updateCommentInTree(comments, commentId, updater) {
+  return comments.map((comment) => {
+    if (comment.id === commentId) {
+      return updater(comment);
+    }
+
+    if (!comment.replies || comment.replies.length === 0) {
+      return comment;
+    }
+
+    return {
+      ...comment,
+      replies: updateCommentInTree(comment.replies, commentId, updater),
+    };
+  });
+}
+
+function mergeTopLevelComments(existingComments, incomingComments) {
+  const merged = new Map();
+
+  for (const comment of [...(incomingComments || []), ...(existingComments || [])]) {
+    merged.set(comment.id, comment);
+  }
+
+  return [...merged.values()].sort((a, b) => {
+    const aTime = new Date(a.createdAt).getTime();
+    const bTime = new Date(b.createdAt).getTime();
+    if (aTime !== bTime) return aTime - bTime;
+    return a.id - b.id;
+  });
+}
+
+export default function PostCommentsPage() {
+  const navigate = useNavigate();
+  const { postId } = useParams();
+
+  const [post, setPost] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const loadPost = async () => {
+      if (!postId) {
+        setError("Post not found");
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        setError("");
+        const data = await getFeedPost(postId);
+        setPost(data?.post ? normalizePost(data.post) : null);
+      } catch (requestError) {
+        setError(requestError.message || "Failed to load post");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPost();
+  }, [postId]);
+
+  const handleTogglePostLike = async (targetPostId) => {
+    try {
+      const data = await toggleFeedPostLike(targetPostId);
+      setPost((previous) => {
+        if (!previous || previous.id !== targetPostId) return previous;
+        return {
+          ...previous,
+          likes: data.likes,
+        };
+      });
+    } catch (requestError) {
+      setError(requestError.message || "Failed to update post like");
+    }
+  };
+
+  const handleCreateComment = async ({ postId: targetPostId, content, parentCommentId = null, imageFile = null }) => {
+    const trimmedContent = content.trim();
+    if (!trimmedContent && !imageFile) return;
+
+    try {
+      const data = await createFeedComment(targetPostId, {
+        content: trimmedContent || null,
+        parentCommentId,
+        imageFile,
+      });
+
+      if (!data?.comment) return;
+
+      setPost((previous) => {
+        if (!previous || previous.id !== targetPostId) return previous;
+
+        const isTopLevelComment = !parentCommentId;
+        return {
+          ...previous,
+          commentCount: (previous.commentCount || 0) + 1,
+          topLevelCommentCount: isTopLevelComment
+            ? (previous.topLevelCommentCount || 0) + 1
+            : (previous.topLevelCommentCount || 0),
+          comments: insertCommentInTree(previous.comments || [], data.comment),
+        };
+      });
+    } catch (requestError) {
+      setError(requestError.message || "Failed to add comment");
+    }
+  };
+
+  const handleToggleCommentLike = async (commentId) => {
+    try {
+      const data = await toggleFeedCommentLike(commentId);
+      setPost((previous) => {
+        if (!previous) return previous;
+        return {
+          ...previous,
+          comments: updateCommentInTree(previous.comments || [], commentId, (comment) => ({
+            ...comment,
+            likes: data.likes,
+          })),
+        };
+      });
+    } catch (requestError) {
+      setError(requestError.message || "Failed to update comment like");
+    }
+  };
+
+  const handleLoadMoreComments = async (targetPostId) => {
+    if (!post || post.id !== targetPostId || !post.commentPagination?.hasMore) return 0;
+
+    try {
+      const data = await getFeedPostComments(targetPostId, {
+        limit: post.commentPagination.pageSize || 10,
+        cursorCreatedAt: post.commentPagination.nextCursor?.createdAt || null,
+        cursorId: post.commentPagination.nextCursor?.id || null,
+      });
+
+      const fetchedComments = Array.isArray(data.comments) ? data.comments : [];
+
+      setPost((previous) => {
+        if (!previous || previous.id !== targetPostId) return previous;
+
+        return {
+          ...previous,
+          topLevelCommentCount: Number.isFinite(data.totalCount)
+            ? data.totalCount
+            : previous.topLevelCommentCount,
+          comments: mergeTopLevelComments(previous.comments || [], fetchedComments),
+          commentPagination: {
+            ...(previous.commentPagination || {}),
+            hasMore: Boolean(data.hasMore),
+            nextCursor: data.nextCursor || null,
+          },
+        };
+      });
+
+      return fetchedComments.length;
+    } catch (requestError) {
+      setError(requestError.message || "Failed to load more comments");
+      return 0;
+    }
+  };
+
+  return (
+    <div className="post-comments-page">
+      <header className="post-comments-header">
+        <button type="button" className="post-comments-back" onClick={() => navigate(-1)} aria-label="Go back">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M12.5 4.167L6.667 10l5.833 5.833" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <h1 className="post-comments-title">{post?.author?.fullName ? `${post.author.fullName}'s post` : "Post"}</h1>
+        <div className="post-comments-spacer" aria-hidden="true" />
+      </header>
+
+      <main className="post-comments-content">
+        {isLoading ? <p className="post-comments-status">Loading post...</p> : null}
+        {!isLoading && error ? <p className="post-comments-status post-comments-status-error">{error}</p> : null}
+        {!isLoading && !error && post ? (
+          <TimelinePost
+            post={post}
+            onTogglePostLike={handleTogglePostLike}
+            onCreateComment={handleCreateComment}
+            onLoadMoreComments={handleLoadMoreComments}
+            onToggleCommentLike={handleToggleCommentLike}
+            onOpenComments={() => {}}
+          />
+        ) : null}
+      </main>
+    </div>
+  );
+}

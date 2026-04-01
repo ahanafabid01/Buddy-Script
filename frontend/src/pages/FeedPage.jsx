@@ -366,6 +366,13 @@ export default function FeedPage() {
     }
   };
 
+  const handleOpenPostComments = (postId) => {
+    if (typeof window === "undefined") return;
+    if (!window.matchMedia("(max-width: 767px)").matches) return;
+
+    navigate(`/feed/post/${postId}`);
+  };
+
   const handleComposerPhotoClick = () => {
     postImageInputRef.current?.click();
   };
@@ -930,6 +937,7 @@ export default function FeedPage() {
                           onCreateComment={handleCreateComment}
                           onLoadMoreComments={handleLoadMoreComments}
                           onToggleCommentLike={handleToggleCommentLike}
+                          onOpenComments={handleOpenPostComments}
                         />
                       ))}
                     </div>

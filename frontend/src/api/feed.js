@@ -38,6 +38,10 @@ export function createFeedPost({ content, visibility = "public", imageFile = nul
   });
 }
 
+export function getFeedPost(postId) {
+  return apiRequest(`/feed/posts/${postId}`);
+}
+
 export function toggleFeedPostLike(postId) {
   return apiRequest(`/feed/posts/${postId}/likes/toggle`, {
     method: "POST",
