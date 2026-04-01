@@ -115,9 +115,9 @@ export default function PostCommentsPage() {
     loadPost();
   }, [postId]);
 
-  const handleTogglePostLike = async (targetPostId) => {
+  const handleTogglePostLike = async (targetPostId, reactionType = "like") => {
     try {
-      const data = await toggleFeedPostLike(targetPostId);
+      const data = await toggleFeedPostLike(targetPostId, reactionType);
       setPost((previous) => {
         if (!previous || previous.id !== targetPostId) return previous;
         return {
@@ -161,9 +161,9 @@ export default function PostCommentsPage() {
     }
   };
 
-  const handleToggleCommentLike = async (commentId) => {
+  const handleToggleCommentLike = async (commentId, reactionType = "like") => {
     try {
-      const data = await toggleFeedCommentLike(commentId);
+      const data = await toggleFeedCommentLike(commentId, reactionType);
       setPost((previous) => {
         if (!previous) return previous;
         return {

@@ -1,6 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getFeedPost, getFeedPostReactions } from "../api/feed";
+import { getFeedPostReactions } from "../api/feed";
+
+const REACTION_META = {
+  like: { label: "Like", glyph: "👍" },
+  love: { label: "Love", glyph: "❤️" },
+  care: { label: "Care", glyph: "🤗" },
+  haha: { label: "Haha", glyph: "😆" },
+  wow: { label: "Wow", glyph: "😮" },
+  sad: { label: "Sad", glyph: "😢" },
+  angry: { label: "Angry", glyph: "😡" },
+};
+
+const REACTION_ORDER = ["like", "love", "care", "haha", "wow", "sad", "angry"];
+
+function emptyReactionCounts() {
+  return {
+    like: 0,
+    love: 0,
+    care: 0,
+    haha: 0,
+    wow: 0,
+    sad: 0,
+    angry: 0,
+  };
+}
 
 function initialsFromName(name = "") {
   const parts = String(name)
@@ -18,8 +42,9 @@ export default function PostReactionsPage() {
   const { postId } = useParams();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [postAuthorName, setPostAuthorName] = useState("Post");
   const [reactions, setReactions] = useState([]);
+  const [reactionCounts, setReactionCounts] = useState(emptyReactionCounts());
+  const [activeFilter, setActiveFilter] = useState("all");
 
   useEffect(() => {
     const loadReactions = async () => {
@@ -33,14 +58,13 @@ export default function PostReactionsPage() {
         setIsLoading(true);
         setError("");
 
-        const [postData, reactionsData] = await Promise.all([
-          getFeedPost(postId),
-          getFeedPostReactions(postId),
-        ]);
-
-        const authorName = postData?.post?.author?.fullName || "Post";
-        setPostAuthorName(authorName);
+        const reactionsData = await getFeedPostReactions(postId);
         setReactions(Array.isArray(reactionsData?.reactions) ? reactionsData.reactions : []);
+        setReactionCounts({
+          ...emptyReactionCounts(),
+          ...(reactionsData?.reactionCounts || {}),
+        });
+        setActiveFilter("all");
       } catch (requestError) {
         setError(requestError.message || "Failed to load reactions");
       } finally {
@@ -52,10 +76,19 @@ export default function PostReactionsPage() {
   }, [postId]);
 
   const totalCount = reactions.length;
-  const likeCount = useMemo(
-    () => reactions.filter((entry) => entry.reactionType === "like").length,
-    [reactions],
+  const filteredReactions = useMemo(() => {
+    if (activeFilter === "all") return reactions;
+    return reactions.filter((entry) => entry.reactionType === activeFilter);
+  }, [activeFilter, reactions]);
+
+  const visibleTabs = useMemo(
+    () => REACTION_ORDER.filter((reactionType) => Number(reactionCounts[reactionType] || 0) > 0),
+    [reactionCounts],
   );
+
+  const emptyMessage = activeFilter === "all"
+    ? "No reactions yet."
+    : `No ${REACTION_META[activeFilter]?.label || activeFilter} reactions yet.`;
 
   return (
     <div className="post-reactions-page">
@@ -65,7 +98,7 @@ export default function PostReactionsPage() {
             <path d="M12.5 4.167L6.667 10l5.833 5.833" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <h1 className="post-reactions-title">{postAuthorName}&apos;s post</h1>
+        <h1 className="post-reactions-title">People who have reacted</h1>
         <button type="button" className="post-reactions-close" onClick={() => navigate(-1)} aria-label="Close reactions page">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 20 20" aria-hidden="true">
             <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
@@ -80,27 +113,46 @@ export default function PostReactionsPage() {
         {!isLoading && !error ? (
           <section className="post-reactions-card">
             <div className="post-reactions-tabs" role="tablist" aria-label="Reactions tabs">
-              <button type="button" role="tab" aria-selected="true" className="post-reactions-tab is-active">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeFilter === "all"}
+                className={`post-reactions-tab ${activeFilter === "all" ? "is-active" : ""}`}
+                onClick={() => setActiveFilter("all")}
+              >
                 All <span>{totalCount}</span>
               </button>
-              <button type="button" role="tab" aria-selected="false" className="post-reactions-tab">
-                👍 <span>{likeCount}</span>
-              </button>
+              {visibleTabs.map((reactionType) => (
+                <button
+                  key={reactionType}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeFilter === reactionType}
+                  className={`post-reactions-tab ${activeFilter === reactionType ? "is-active" : ""}`}
+                  onClick={() => setActiveFilter(reactionType)}
+                >
+                  {REACTION_META[reactionType].glyph} <span>{reactionCounts[reactionType] || 0}</span>
+                </button>
+              ))}
             </div>
 
-            {totalCount === 0 ? (
-              <p className="post-reactions-empty">No reactions yet.</p>
+            {filteredReactions.length === 0 ? (
+              <p className="post-reactions-empty">{emptyMessage}</p>
             ) : (
               <ul className="post-reactions-list">
-                {reactions.map((entry, index) => (
+                {filteredReactions.map((entry, index) => {
+                  const meta = REACTION_META[entry.reactionType] || REACTION_META.like;
+
+                  return (
                   <li key={`${entry.userId}-${index}`} className="post-reactions-item">
                     <span className="post-reactions-avatar" aria-hidden="true">{initialsFromName(entry.fullName)}</span>
                     <div className="post-reactions-user-meta">
                       <p className="post-reactions-user-name">{entry.fullName || "Unknown user"}</p>
-                      <p className="post-reactions-user-reaction">👍 Like</p>
+                      <p className="post-reactions-user-reaction">{meta.glyph} {meta.label}</p>
                     </div>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             )}
           </section>

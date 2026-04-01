@@ -73,6 +73,7 @@ CHECK (
 CREATE TABLE IF NOT EXISTS post_likes (
   post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reaction_type VARCHAR(10) NOT NULL DEFAULT 'like' CHECK (reaction_type IN ('like', 'love', 'care', 'haha', 'wow', 'sad', 'angry')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (post_id, user_id)
 );
@@ -80,9 +81,30 @@ CREATE TABLE IF NOT EXISTS post_likes (
 CREATE TABLE IF NOT EXISTS comment_likes (
   comment_id BIGINT NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reaction_type VARCHAR(10) NOT NULL DEFAULT 'like' CHECK (reaction_type IN ('like', 'love', 'care', 'haha', 'wow', 'sad', 'angry')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (comment_id, user_id)
 );
+
+ALTER TABLE post_likes
+ADD COLUMN IF NOT EXISTS reaction_type VARCHAR(10) NOT NULL DEFAULT 'like';
+
+ALTER TABLE post_likes
+DROP CONSTRAINT IF EXISTS post_likes_reaction_type_check;
+
+ALTER TABLE post_likes
+ADD CONSTRAINT post_likes_reaction_type_check
+CHECK (reaction_type IN ('like', 'love', 'care', 'haha', 'wow', 'sad', 'angry'));
+
+ALTER TABLE comment_likes
+ADD COLUMN IF NOT EXISTS reaction_type VARCHAR(10) NOT NULL DEFAULT 'like';
+
+ALTER TABLE comment_likes
+DROP CONSTRAINT IF EXISTS comment_likes_reaction_type_check;
+
+ALTER TABLE comment_likes
+ADD CONSTRAINT comment_likes_reaction_type_check
+CHECK (reaction_type IN ('like', 'love', 'care', 'haha', 'wow', 'sad', 'angry'));
 
 UPDATE posts p
 SET like_count = likes.count
@@ -185,6 +207,8 @@ CREATE INDEX IF NOT EXISTS idx_comments_post_order ON comments(post_id, created_
 CREATE INDEX IF NOT EXISTS idx_comments_parent_order ON comments(parent_comment_id, created_at ASC, id ASC);
 CREATE INDEX IF NOT EXISTS idx_post_likes_post_created ON post_likes(post_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_post_likes_user_created ON post_likes(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_post_likes_post_reaction ON post_likes(post_id, reaction_type);
 CREATE INDEX IF NOT EXISTS idx_comment_likes_comment_created ON comment_likes(comment_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_comment_likes_user_created ON comment_likes(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_comment_likes_comment_reaction ON comment_likes(comment_id, reaction_type);
 

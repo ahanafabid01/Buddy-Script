@@ -233,14 +233,20 @@ function initialsFromName(name = "") {
   return `${parts[0].slice(0, 1)}${parts[1].slice(0, 1)}`.toUpperCase();
 }
 
-function LikerAvatarStack({ likedBy = [], totalCount = 0, size = "md" }) {
-  if (!Array.isArray(likedBy) || likedBy.length === 0 || totalCount === 0) return null;
+function isTextOnlyComment(comment) {
+  const content = typeof comment?.content === "string" ? comment.content.trim() : "";
+  return content.length > 0 && !comment?.imageUrl;
+}
 
-  const visible = likedBy.slice(0, 3);
+function LikerAvatarStack({ likedBy = [], totalCount = 0, size = "md" }) {
+  if (totalCount === 0) return null;
+
+  const safeLikedBy = Array.isArray(likedBy) ? likedBy : [];
+  const visible = safeLikedBy.slice(0, 3);
   const remaining = Math.max(totalCount - visible.length, 0);
 
   return (
-    <div className={`liker-avatar-stack size-${size}`} title={likedByText(likedBy)}>
+    <div className={`liker-avatar-stack size-${size}`} title={likedByText(safeLikedBy)}>
       {visible.map((entry, index) => (
         <span key={`${entry.name}-${index}`} className="liker-avatar-chip" aria-hidden="true">
           {initialsFromName(entry.name)}
@@ -439,7 +445,7 @@ function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommen
   const [replyImageError, setReplyImageError] = useState("");
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
-  const [commentReaction, setCommentReaction] = useState(comment.likes?.likedByViewer ? "like" : null);
+  const [commentReaction, setCommentReaction] = useState(comment.likes?.viewerReaction || null);
   const replyImageInputRef = useRef(null);
 
   const replyCount = Number.isFinite(comment.replyCount)
@@ -448,34 +454,28 @@ function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommen
   const commentTime = formatTimeAgo(comment.createdAt);
 
   useEffect(() => {
-    if (!comment.likes?.likedByViewer) {
-      setCommentReaction(null);
-    } else if (!commentReaction) {
-      setCommentReaction("like");
-    }
-  }, [comment.likes?.likedByViewer, commentReaction]);
+    setCommentReaction(comment.likes?.viewerReaction || null);
+  }, [comment.likes?.viewerReaction]);
 
   const handleCommentReactionSelect = async (reactionId) => {
     if (comment.likes?.likedByViewer && commentReaction === reactionId) {
-      await onToggleCommentLike(comment.id);
+      await onToggleCommentLike(comment.id, reactionId);
       setCommentReaction(null);
       return;
     }
 
-    if (!comment.likes?.likedByViewer) {
-      await onToggleCommentLike(comment.id);
-    }
+    await onToggleCommentLike(comment.id, reactionId);
 
     setCommentReaction(reactionId);
   };
 
   const handleCommentReactionToggle = async () => {
     if (comment.likes?.likedByViewer) {
-      await onToggleCommentLike(comment.id);
+      await onToggleCommentLike(comment.id, commentReaction || "like");
       setCommentReaction(null);
       return;
     }
-    await onToggleCommentLike(comment.id);
+    await onToggleCommentLike(comment.id, "like");
     setCommentReaction("like");
   };
 
@@ -653,14 +653,17 @@ export function TimelinePost({
   onToggleCommentLike,
   onOpenComments,
   onOpenReactions,
+  initialVisibleTopLevelComments = 2,
+  preferTextOnlyCollapsed = false,
 }) {
   const [commentContent, setCommentContent] = useState("");
   const [commentImageFile, setCommentImageFile] = useState(null);
   const [commentImageError, setCommentImageError] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [isLoadingMoreComments, setIsLoadingMoreComments] = useState(false);
-  const [visibleTopLevelComments, setVisibleTopLevelComments] = useState(2);
-  const [postReaction, setPostReaction] = useState(post.likes?.likedByViewer ? "like" : null);
+  const initialVisibleCount = Math.max(1, Number.parseInt(initialVisibleTopLevelComments, 10) || 2);
+  const [visibleTopLevelComments, setVisibleTopLevelComments] = useState(initialVisibleCount);
+  const [postReaction, setPostReaction] = useState(post.likes?.viewerReaction || null);
   const commentImageInputRef = useRef(null);
 
   const authorName = post.author?.fullName || post.author || "Unknown";
@@ -671,39 +674,49 @@ export function TimelinePost({
     ? post.topLevelCommentCount
     : topLevelComments.length;
   const serverHiddenTopLevelCount = Math.max(totalTopLevelCount - topLevelComments.length, 0);
-  const visibleComments = loadedHiddenTopLevelCount > 0
+  const baseVisibleComments = loadedHiddenTopLevelCount > 0
     ? topLevelComments.slice(loadedHiddenTopLevelCount)
     : topLevelComments;
+  const shouldUseCollapsedTextOnlyPreview =
+    preferTextOnlyCollapsed &&
+    visibleTopLevelComments === initialVisibleCount &&
+    initialVisibleCount === 1;
+
+  const latestTextOnlyComment = shouldUseCollapsedTextOnlyPreview
+    ? [...topLevelComments].reverse().find(isTextOnlyComment) || null
+    : null;
+
+  const visibleComments = latestTextOnlyComment
+    ? [latestTextOnlyComment]
+    : baseVisibleComments;
+
+  const hiddenTopLevelCountForButton = shouldUseCollapsedTextOnlyPreview
+    ? Math.max(totalTopLevelCount - visibleComments.length, 0)
+    : (loadedHiddenTopLevelCount > 0 ? loadedHiddenTopLevelCount : serverHiddenTopLevelCount);
 
   useEffect(() => {
-    if (!post.likes?.likedByViewer) {
-      setPostReaction(null);
-    } else if (!postReaction) {
-      setPostReaction("like");
-    }
-  }, [post.likes?.likedByViewer, postReaction]);
+    setPostReaction(post.likes?.viewerReaction || null);
+  }, [post.likes?.viewerReaction]);
 
   const handlePostReactionSelect = async (reactionId) => {
     if (post.likes?.likedByViewer && postReaction === reactionId) {
-      await onTogglePostLike(post.id);
+      await onTogglePostLike(post.id, reactionId);
       setPostReaction(null);
       return;
     }
 
-    if (!post.likes?.likedByViewer) {
-      await onTogglePostLike(post.id);
-    }
+    await onTogglePostLike(post.id, reactionId);
 
     setPostReaction(reactionId);
   };
 
   const handlePostReactionToggle = async () => {
     if (post.likes?.likedByViewer) {
-      await onTogglePostLike(post.id);
+      await onTogglePostLike(post.id, postReaction || "like");
       setPostReaction(null);
       return;
     }
-    await onTogglePostLike(post.id);
+    await onTogglePostLike(post.id, "like");
     setPostReaction("like");
   };
 
@@ -835,6 +848,7 @@ export function TimelinePost({
           aria-label={canOpenReactions ? "Open reactions list" : undefined}
         >
           <LikerAvatarStack likedBy={post.likes?.likedBy || []} totalCount={post.likes?.count || 0} size="md" />
+          <span className="post-reaction-count-text">{post.likes?.count || 0} reaction{(post.likes?.count || 0) === 1 ? "" : "s"}</span>
         </div>
         <div className="_feed_inner_timeline_total_reacts_txt">
           <p className="_feed_inner_timeline_total_reacts_para1"><span>{post.commentCount || 0}</span> Comment</p>
@@ -925,11 +939,13 @@ export function TimelinePost({
           </form>
         </div>
 
-        {loadedHiddenTopLevelCount > 0 || serverHiddenTopLevelCount > 0 ? (
+        {hiddenTopLevelCountForButton > 0 ? (
           <button type="button" className="comments-history-btn" onClick={handleViewPreviousComments} disabled={isLoadingMoreComments}>
             {isLoadingMoreComments
               ? "Loading comments..."
-              : `View ${loadedHiddenTopLevelCount > 0 ? loadedHiddenTopLevelCount : serverHiddenTopLevelCount} previous comment${(loadedHiddenTopLevelCount > 0 ? loadedHiddenTopLevelCount : serverHiddenTopLevelCount) === 1 ? "" : "s"}`}
+              : loadedHiddenTopLevelCount > 0 || shouldUseCollapsedTextOnlyPreview
+                ? `View previous comments${hiddenTopLevelCountForButton > 0 ? ` (${hiddenTopLevelCountForButton})` : ""}`
+                : "Load more comments"}
           </button>
         ) : null}
 

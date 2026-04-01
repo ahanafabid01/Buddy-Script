@@ -29,6 +29,10 @@ const createCommentSchema = z.object({
   parentCommentId: z.number().int().positive().nullable().optional(),
 });
 
+const reactionTypeSchema = z.object({
+  reactionType: z.enum(["like", "love", "care", "haha", "wow", "sad", "angry"]).default("like"),
+});
+
 function parsePositiveInt(value, fieldName) {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isSafeInteger(parsed) || parsed <= 0) {
@@ -120,7 +124,10 @@ router.get("/posts/:postId", async (req, res, next) => {
 router.post("/posts/:postId/likes/toggle", async (req, res, next) => {
   try {
     const postId = parsePositiveInt(req.params.postId, "postId");
-    const likes = await togglePostLike(pool, postId, req.auth.userId);
+    const parsed = reactionTypeSchema.parse({
+      reactionType: req.body?.reactionType || "like",
+    });
+    const likes = await togglePostLike(pool, postId, req.auth.userId, parsed.reactionType);
     return res.json({ likes });
   } catch (error) {
     return next(error);
@@ -203,7 +210,10 @@ router.post("/posts/:postId/comments", upload.single("image"), async (req, res, 
 router.post("/comments/:commentId/likes/toggle", async (req, res, next) => {
   try {
     const commentId = parsePositiveInt(req.params.commentId, "commentId");
-    const likes = await toggleCommentLike(pool, commentId, req.auth.userId);
+    const parsed = reactionTypeSchema.parse({
+      reactionType: req.body?.reactionType || "like",
+    });
+    const likes = await toggleCommentLike(pool, commentId, req.auth.userId, parsed.reactionType);
     return res.json({ likes });
   } catch (error) {
     return next(error);

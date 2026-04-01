@@ -762,6 +762,14 @@
   border-radius: 999px;
 }
 
+.post-reaction-count-text {
+  margin-left: 10px;
+  color: #43566b;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .post-reactions-page {
   min-height: 100vh;
   background:
@@ -822,6 +830,12 @@
   gap: 6px;
   border-bottom: 1px solid #eaf1fa;
   padding: 10px 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.post-reactions-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .post-reactions-tab {
@@ -832,6 +846,8 @@
   font-weight: 600;
   border-radius: 999px;
   padding: 8px 12px;
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 
 .post-reactions-tab span {
@@ -1215,6 +1231,10 @@
   background: #3a1818;
   border-color: #6c3232;
   color: #ffc1c1;
+}
+
+._dark_wrapper .post-reaction-count-text {
+  color: rgba(213, 232, 255, 0.82);
 }
 
 @media only screen and (max-width: 767px) {

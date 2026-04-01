@@ -42,9 +42,10 @@ export function getFeedPost(postId) {
   return apiRequest(`/feed/posts/${postId}`);
 }
 
-export function toggleFeedPostLike(postId) {
+export function toggleFeedPostLike(postId, reactionType = "like") {
   return apiRequest(`/feed/posts/${postId}/likes/toggle`, {
     method: "POST",
+    body: { reactionType },
   });
 }
 
@@ -97,8 +98,9 @@ export function getFeedPostComments(postId, params = {}) {
   return apiRequest(`/feed/posts/${postId}/comments${queryString ? `?${queryString}` : ""}`);
 }
 
-export function toggleFeedCommentLike(commentId) {
+export function toggleFeedCommentLike(commentId, reactionType = "like") {
   return apiRequest(`/feed/comments/${commentId}/likes/toggle`, {
     method: "POST",
+    body: { reactionType },
   });
 }

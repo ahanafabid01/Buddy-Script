@@ -268,9 +268,9 @@ export default function FeedPage() {
     }
   };
 
-  const handleTogglePostLike = async (postId) => {
+  const handleTogglePostLike = async (postId, reactionType = "like") => {
     try {
-      const data = await toggleFeedPostLike(postId);
+      const data = await toggleFeedPostLike(postId, reactionType);
       setPosts((previous) => previous.map((post) => (post.id === postId ? { ...post, likes: data.likes } : post)));
     } catch (error) {
       setFeedError(error.message || "Failed to update post like");
@@ -310,9 +310,9 @@ export default function FeedPage() {
     }
   };
 
-  const handleToggleCommentLike = async (commentId) => {
+  const handleToggleCommentLike = async (commentId, reactionType = "like") => {
     try {
-      const data = await toggleFeedCommentLike(commentId);
+      const data = await toggleFeedCommentLike(commentId, reactionType);
       setPosts((previous) =>
         previous.map((post) => ({
           ...post,
@@ -943,6 +943,8 @@ export default function FeedPage() {
                           onToggleCommentLike={handleToggleCommentLike}
                           onOpenComments={handleOpenPostComments}
                           onOpenReactions={handleOpenPostReactions}
+                          initialVisibleTopLevelComments={1}
+                          preferTextOnlyCollapsed
                         />
                       ))}
                     </div>

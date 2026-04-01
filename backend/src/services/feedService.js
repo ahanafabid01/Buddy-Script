@@ -1,5 +1,19 @@
 const httpError = require("../utils/httpError");
 
+const SUPPORTED_REACTIONS = ["like", "love", "care", "haha", "wow", "sad", "angry"];
+
+function emptyReactionCounts() {
+  return {
+    like: 0,
+    love: 0,
+    care: 0,
+    haha: 0,
+    wow: 0,
+    sad: 0,
+    angry: 0,
+  };
+}
+
 function parseJsonArray(value) {
   if (Array.isArray(value)) return value;
 
@@ -19,7 +33,23 @@ function normalizeLikedBy(value) {
   return parseJsonArray(value).map((entry) => ({
     id: Number.parseInt(entry.id, 10),
     name: entry.name,
+    reactionType: SUPPORTED_REACTIONS.includes(entry.reactionType)
+      ? entry.reactionType
+      : "like",
   }));
+}
+
+function normalizeReactionCounts(value) {
+  const counts = emptyReactionCounts();
+  const parsed = value && typeof value === "object" ? value : {};
+
+  for (const reactionType of SUPPORTED_REACTIONS) {
+    const raw = parsed[reactionType];
+    if (raw === undefined || raw === null) continue;
+    counts[reactionType] = Number.parseInt(raw, 10) || 0;
+  }
+
+  return counts;
 }
 
 function mapPostRow(row) {
@@ -37,7 +67,9 @@ function mapPostRow(row) {
     },
     likes: {
       count: Number.parseInt(row.like_count, 10),
-      likedByViewer: row.liked_by_viewer,
+      likedByViewer: Boolean(row.viewer_reaction_type),
+      viewerReaction: row.viewer_reaction_type || null,
+      reactionCounts: normalizeReactionCounts(row.reaction_counts),
       likedBy: normalizeLikedBy(row.liked_by),
     },
     commentCount: Number.parseInt(row.comment_count, 10),
@@ -65,7 +97,9 @@ function mapCommentRow(row) {
     },
     likes: {
       count: Number.parseInt(row.like_count, 10),
-      likedByViewer: row.liked_by_viewer,
+      likedByViewer: Boolean(row.viewer_reaction_type),
+      viewerReaction: row.viewer_reaction_type || null,
+      reactionCounts: normalizeReactionCounts(row.reaction_counts),
       likedBy: normalizeLikedBy(row.liked_by),
     },
     replyCount: Number.parseInt(row.reply_count || 0, 10),
@@ -83,20 +117,33 @@ const postSelect = `
     p.created_at,
     u.first_name,
     u.last_name,
-    EXISTS (
-      SELECT 1
+    (
+      SELECT pl.reaction_type
       FROM post_likes pl
       WHERE pl.post_id = p.id AND pl.user_id = $1
-    ) AS liked_by_viewer,
+      LIMIT 1
+    ) AS viewer_reaction_type,
     p.like_count,
     COALESCE(
       (
+        SELECT json_object_agg(rc.reaction_type, rc.count)
+        FROM (
+          SELECT pl3.reaction_type, COUNT(*)::int AS count
+          FROM post_likes pl3
+          WHERE pl3.post_id = p.id
+          GROUP BY pl3.reaction_type
+        ) rc
+      ),
+      '{}'::json
+    ) AS reaction_counts,
+    COALESCE(
+      (
         SELECT json_agg(
-          json_build_object('id', lu.id, 'name', lu.first_name || ' ' || lu.last_name)
+          json_build_object('id', lu.id, 'name', lu.first_name || ' ' || lu.last_name, 'reactionType', likes.reaction_type)
           ORDER BY likes.created_at DESC
         )
         FROM (
-          SELECT pl2.user_id, pl2.created_at
+          SELECT pl2.user_id, pl2.created_at, pl2.reaction_type
           FROM post_likes pl2
           WHERE pl2.post_id = p.id
           ORDER BY pl2.created_at DESC
@@ -123,21 +170,34 @@ const commentSelect = `
     c.user_id,
     u.first_name,
     u.last_name,
-    EXISTS (
-      SELECT 1
+    (
+      SELECT cl.reaction_type
       FROM comment_likes cl
       WHERE cl.comment_id = c.id AND cl.user_id = $2
-    ) AS liked_by_viewer,
+      LIMIT 1
+    ) AS viewer_reaction_type,
     c.like_count,
     c.reply_count,
     COALESCE(
       (
+        SELECT json_object_agg(rc.reaction_type, rc.count)
+        FROM (
+          SELECT cl3.reaction_type, COUNT(*)::int AS count
+          FROM comment_likes cl3
+          WHERE cl3.comment_id = c.id
+          GROUP BY cl3.reaction_type
+        ) rc
+      ),
+      '{}'::json
+    ) AS reaction_counts,
+    COALESCE(
+      (
         SELECT json_agg(
-          json_build_object('id', lu.id, 'name', lu.first_name || ' ' || lu.last_name)
+          json_build_object('id', lu.id, 'name', lu.first_name || ' ' || lu.last_name, 'reactionType', likes.reaction_type)
           ORDER BY likes.created_at DESC
         )
         FROM (
-          SELECT cl2.user_id, cl2.created_at
+          SELECT cl2.user_id, cl2.created_at, cl2.reaction_type
           FROM comment_likes cl2
           WHERE cl2.comment_id = c.id
           ORDER BY cl2.created_at DESC
@@ -222,21 +282,34 @@ async function fetchCommentThreadsByRootIds(client, rootIds, viewerId, scopedPos
         c.user_id,
         u.first_name,
         u.last_name,
-        EXISTS (
-          SELECT 1
+        (
+          SELECT cl.reaction_type
           FROM comment_likes cl
           WHERE cl.comment_id = c.id AND cl.user_id = $2
-        ) AS liked_by_viewer,
+          LIMIT 1
+        ) AS viewer_reaction_type,
         c.like_count,
         c.reply_count,
         COALESCE(
           (
+            SELECT json_object_agg(rc.reaction_type, rc.count)
+            FROM (
+              SELECT cl3.reaction_type, COUNT(*)::int AS count
+              FROM comment_likes cl3
+              WHERE cl3.comment_id = c.id
+              GROUP BY cl3.reaction_type
+            ) rc
+          ),
+          '{}'::json
+        ) AS reaction_counts,
+        COALESCE(
+          (
             SELECT json_agg(
-              json_build_object('id', lu.id, 'name', lu.first_name || ' ' || lu.last_name)
+              json_build_object('id', lu.id, 'name', lu.first_name || ' ' || lu.last_name, 'reactionType', likes.reaction_type)
               ORDER BY likes.created_at DESC
             )
             FROM (
-              SELECT cl2.user_id, cl2.created_at
+              SELECT cl2.user_id, cl2.created_at, cl2.reaction_type
               FROM comment_likes cl2
               WHERE cl2.comment_id = c.id
               ORDER BY cl2.created_at DESC
@@ -514,19 +587,32 @@ async function getPostLikeSummary(client, postId, viewerId) {
     `
       SELECT
         p.like_count,
-        EXISTS (
-          SELECT 1
+        (
+          SELECT pl.reaction_type
           FROM post_likes pl
           WHERE pl.post_id = $1 AND pl.user_id = $2
-        ) AS liked_by_viewer,
+          LIMIT 1
+        ) AS viewer_reaction_type,
+        COALESCE(
+          (
+            SELECT json_object_agg(rc.reaction_type, rc.count)
+            FROM (
+              SELECT pl3.reaction_type, COUNT(*)::int AS count
+              FROM post_likes pl3
+              WHERE pl3.post_id = $1
+              GROUP BY pl3.reaction_type
+            ) rc
+          ),
+          '{}'::json
+        ) AS reaction_counts,
         COALESCE(
           (
             SELECT json_agg(
-              json_build_object('id', lu.id, 'name', lu.first_name || ' ' || lu.last_name)
+              json_build_object('id', lu.id, 'name', lu.first_name || ' ' || lu.last_name, 'reactionType', likes.reaction_type)
               ORDER BY likes.created_at DESC
             )
             FROM (
-              SELECT pl2.user_id, pl2.created_at
+              SELECT pl2.user_id, pl2.created_at, pl2.reaction_type
               FROM post_likes pl2
               WHERE pl2.post_id = $1
               ORDER BY pl2.created_at DESC
@@ -544,7 +630,9 @@ async function getPostLikeSummary(client, postId, viewerId) {
 
   return {
     count: Number.parseInt(rows[0].like_count, 10),
-    likedByViewer: rows[0].liked_by_viewer,
+    likedByViewer: Boolean(rows[0].viewer_reaction_type),
+    viewerReaction: rows[0].viewer_reaction_type || null,
+    reactionCounts: normalizeReactionCounts(rows[0].reaction_counts),
     likedBy: normalizeLikedBy(rows[0].liked_by),
   };
 }
@@ -557,6 +645,7 @@ async function getPostReactions(client, viewerId, postId) {
       SELECT
         pl.user_id,
         pl.created_at,
+        pl.reaction_type,
         u.first_name,
         u.last_name
       FROM post_likes pl
@@ -567,41 +656,97 @@ async function getPostReactions(client, viewerId, postId) {
     [postId],
   );
 
+  const reactionCounts = emptyReactionCounts();
+  for (const row of rows) {
+    const reactionType = SUPPORTED_REACTIONS.includes(row.reaction_type)
+      ? row.reaction_type
+      : "like";
+    reactionCounts[reactionType] += 1;
+  }
+
   return {
     totalCount: rows.length,
+    reactionCounts,
     reactions: rows.map((row) => ({
       userId: Number.parseInt(row.user_id, 10),
       fullName: `${row.first_name} ${row.last_name}`.trim(),
-      reactionType: "like",
+      reactionType: SUPPORTED_REACTIONS.includes(row.reaction_type)
+        ? row.reaction_type
+        : "like",
       createdAt: new Date(row.created_at).toISOString(),
     })),
   };
 }
 
-async function togglePostLike(client, postId, viewerId) {
+async function togglePostLike(client, postId, viewerId, reactionType = "like") {
   await assertPostReadable(client, postId, viewerId);
+
+  const finalReactionType = SUPPORTED_REACTIONS.includes(reactionType)
+    ? reactionType
+    : "like";
+
+  const { rows: existingRows } = await client.query(
+    `
+      SELECT reaction_type
+      FROM post_likes
+      WHERE post_id = $1 AND user_id = $2
+      LIMIT 1
+    `,
+    [postId, viewerId],
+  );
+
+  if (existingRows.length === 0) {
+    await client.query(
+      `
+        INSERT INTO post_likes (post_id, user_id, reaction_type)
+        VALUES ($1, $2, $3)
+      `,
+      [postId, viewerId, finalReactionType],
+    );
+
+    await client.query(
+      `
+        UPDATE posts
+        SET like_count = like_count + 1
+        WHERE id = $1
+      `,
+      [postId],
+    );
+
+    return getPostLikeSummary(client, postId, viewerId);
+  }
+
+  const currentReactionType = existingRows[0].reaction_type;
+
+  if (currentReactionType === finalReactionType) {
+    await client.query(
+      `
+        DELETE FROM post_likes
+        WHERE post_id = $1 AND user_id = $2
+      `,
+      [postId, viewerId],
+    );
+
+    await client.query(
+      `
+        UPDATE posts
+        SET like_count = GREATEST(0, like_count - 1)
+        WHERE id = $1
+      `,
+      [postId],
+    );
+
+    return getPostLikeSummary(client, postId, viewerId);
+  }
 
   await client.query(
     `
-      WITH removed AS (
-        DELETE FROM post_likes
-        WHERE post_id = $1 AND user_id = $2
-        RETURNING 1
-      ),
-      inserted AS (
-        INSERT INTO post_likes (post_id, user_id)
-        SELECT $1, $2
-        WHERE NOT EXISTS (SELECT 1 FROM removed)
-        RETURNING 1
-      )
-      UPDATE posts p
-      SET like_count = GREATEST(
-        0,
-        p.like_count + CASE WHEN EXISTS (SELECT 1 FROM inserted) THEN 1 ELSE -1 END
-      )
-      WHERE p.id = $1
+      UPDATE post_likes
+      SET reaction_type = $3,
+          created_at = NOW()
+      WHERE post_id = $1 AND user_id = $2
     `,
-    [postId, viewerId],
+    [postId, viewerId, finalReactionType],
   );
 
   return getPostLikeSummary(client, postId, viewerId);
@@ -645,19 +790,32 @@ async function getCommentLikeSummary(client, commentId, viewerId) {
     `
       SELECT
         c.like_count,
-        EXISTS (
-          SELECT 1
+        (
+          SELECT cl.reaction_type
           FROM comment_likes cl
           WHERE cl.comment_id = $1 AND cl.user_id = $2
-        ) AS liked_by_viewer,
+          LIMIT 1
+        ) AS viewer_reaction_type,
+        COALESCE(
+          (
+            SELECT json_object_agg(rc.reaction_type, rc.count)
+            FROM (
+              SELECT cl3.reaction_type, COUNT(*)::int AS count
+              FROM comment_likes cl3
+              WHERE cl3.comment_id = $1
+              GROUP BY cl3.reaction_type
+            ) rc
+          ),
+          '{}'::json
+        ) AS reaction_counts,
         COALESCE(
           (
             SELECT json_agg(
-              json_build_object('id', lu.id, 'name', lu.first_name || ' ' || lu.last_name)
+              json_build_object('id', lu.id, 'name', lu.first_name || ' ' || lu.last_name, 'reactionType', likes.reaction_type)
               ORDER BY likes.created_at DESC
             )
             FROM (
-              SELECT cl2.user_id, cl2.created_at
+              SELECT cl2.user_id, cl2.created_at, cl2.reaction_type
               FROM comment_likes cl2
               WHERE cl2.comment_id = $1
               ORDER BY cl2.created_at DESC
@@ -675,35 +833,82 @@ async function getCommentLikeSummary(client, commentId, viewerId) {
 
   return {
     count: Number.parseInt(rows[0].like_count, 10),
-    likedByViewer: rows[0].liked_by_viewer,
+    likedByViewer: Boolean(rows[0].viewer_reaction_type),
+    viewerReaction: rows[0].viewer_reaction_type || null,
+    reactionCounts: normalizeReactionCounts(rows[0].reaction_counts),
     likedBy: normalizeLikedBy(rows[0].liked_by),
   };
 }
 
-async function toggleCommentLike(client, commentId, viewerId) {
+async function toggleCommentLike(client, commentId, viewerId, reactionType = "like") {
   await assertCommentReadable(client, commentId, viewerId);
+
+  const finalReactionType = SUPPORTED_REACTIONS.includes(reactionType)
+    ? reactionType
+    : "like";
+
+  const { rows: existingRows } = await client.query(
+    `
+      SELECT reaction_type
+      FROM comment_likes
+      WHERE comment_id = $1 AND user_id = $2
+      LIMIT 1
+    `,
+    [commentId, viewerId],
+  );
+
+  if (existingRows.length === 0) {
+    await client.query(
+      `
+        INSERT INTO comment_likes (comment_id, user_id, reaction_type)
+        VALUES ($1, $2, $3)
+      `,
+      [commentId, viewerId, finalReactionType],
+    );
+
+    await client.query(
+      `
+        UPDATE comments
+        SET like_count = like_count + 1
+        WHERE id = $1
+      `,
+      [commentId],
+    );
+
+    return getCommentLikeSummary(client, commentId, viewerId);
+  }
+
+  const currentReactionType = existingRows[0].reaction_type;
+
+  if (currentReactionType === finalReactionType) {
+    await client.query(
+      `
+        DELETE FROM comment_likes
+        WHERE comment_id = $1 AND user_id = $2
+      `,
+      [commentId, viewerId],
+    );
+
+    await client.query(
+      `
+        UPDATE comments
+        SET like_count = GREATEST(0, like_count - 1)
+        WHERE id = $1
+      `,
+      [commentId],
+    );
+
+    return getCommentLikeSummary(client, commentId, viewerId);
+  }
 
   await client.query(
     `
-      WITH removed AS (
-        DELETE FROM comment_likes
-        WHERE comment_id = $1 AND user_id = $2
-        RETURNING 1
-      ),
-      inserted AS (
-        INSERT INTO comment_likes (comment_id, user_id)
-        SELECT $1, $2
-        WHERE NOT EXISTS (SELECT 1 FROM removed)
-        RETURNING 1
-      )
-      UPDATE comments c
-      SET like_count = GREATEST(
-        0,
-        c.like_count + CASE WHEN EXISTS (SELECT 1 FROM inserted) THEN 1 ELSE -1 END
-      )
-      WHERE c.id = $1
+      UPDATE comment_likes
+      SET reaction_type = $3,
+          created_at = NOW()
+      WHERE comment_id = $1 AND user_id = $2
     `,
-    [commentId, viewerId],
+    [commentId, viewerId, finalReactionType],
   );
 
   return getCommentLikeSummary(client, commentId, viewerId);
@@ -777,9 +982,10 @@ async function createComment(client, input) {
         c.user_id,
         u.first_name,
         u.last_name,
-        FALSE AS liked_by_viewer,
+        NULL::varchar AS viewer_reaction_type,
         0 AS like_count,
         0 AS reply_count,
+        '{}'::json AS reaction_counts,
         '[]'::json AS liked_by
       FROM comments c
       JOIN users u ON u.id = c.user_id
