@@ -51,8 +51,8 @@ router.post("/register", async (req, res, next) => {
     const token = createAuthToken(user);
 
     res.cookie(env.cookieName, token, getCookieOptions());
-    issueCsrfCookie(res);
-    return res.status(201).json({ user });
+    const csrfToken = issueCsrfCookie(res);
+    return res.status(201).json({ user, csrfToken });
   } catch (error) {
     if (error.code === "23505") {
       return next(httpError(409, "Email already registered"));
@@ -88,8 +88,8 @@ router.post("/login", async (req, res, next) => {
     const token = createAuthToken(user);
 
     res.cookie(env.cookieName, token, getCookieOptions());
-    issueCsrfCookie(res);
-    return res.json({ user });
+    const csrfToken = issueCsrfCookie(res);
+    return res.json({ user, csrfToken });
   } catch (error) {
     return next(error);
   }
@@ -119,11 +119,12 @@ router.get("/me", requireAuth, async (req, res, next) => {
       throw httpError(401, "Authenticated user no longer exists");
     }
 
-    if (!req.cookies?.[env.csrfCookieName]) {
-      issueCsrfCookie(res);
+    let csrfToken = req.cookies?.[env.csrfCookieName] || null;
+    if (!csrfToken) {
+      csrfToken = issueCsrfCookie(res);
     }
 
-    return res.json({ user: toPublicUser(rows[0]) });
+    return res.json({ user: toPublicUser(rows[0]), csrfToken });
   } catch (error) {
     return next(error);
   }

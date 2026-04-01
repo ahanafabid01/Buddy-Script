@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { apiRequest } from "../api/client";
+import { apiRequest, clearCsrfTokenMemory } from "../api/client";
 
 const AuthContext = createContext(null);
 
@@ -14,6 +14,7 @@ export function AuthProvider({ children }) {
       return data.user;
     } catch (_error) {
       setUser(null);
+      clearCsrfTokenMemory();
       return null;
     } finally {
       setIsLoading(false);
@@ -44,6 +45,7 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     await apiRequest("/auth/logout", { method: "POST" });
+    clearCsrfTokenMemory();
     setUser(null);
   };
 

@@ -1,6 +1,11 @@
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
 export const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
 export const CSRF_COOKIE_NAME = import.meta.env.VITE_CSRF_COOKIE_NAME || "appifylab_csrf";
+let csrfTokenMemory = null;
+
+export function clearCsrfTokenMemory() {
+  csrfTokenMemory = null;
+}
 
 function getCookieValue(name) {
   if (typeof document === "undefined") return null;
@@ -35,7 +40,7 @@ export async function apiRequest(path, options = {}) {
   };
 
   if (!["GET", "HEAD", "OPTIONS"].includes(normalizedMethod)) {
-    const csrfToken = getCookieValue(CSRF_COOKIE_NAME);
+    const csrfToken = getCookieValue(CSRF_COOKIE_NAME) || csrfTokenMemory;
     if (csrfToken) {
       requestOptions.headers["X-CSRF-Token"] = csrfToken;
     }
@@ -61,6 +66,10 @@ export async function apiRequest(path, options = {}) {
     data = await response.json();
   } catch (_error) {
     data = null;
+  }
+
+  if (typeof data?.csrfToken === "string" && data.csrfToken) {
+    csrfTokenMemory = data.csrfToken;
   }
 
   if (!response.ok) {
