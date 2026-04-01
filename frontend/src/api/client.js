@@ -1,5 +1,22 @@
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
 export const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
+export const CSRF_COOKIE_NAME = import.meta.env.VITE_CSRF_COOKIE_NAME || "appifylab_csrf";
+
+function getCookieValue(name) {
+  if (typeof document === "undefined") return null;
+
+  const encodedName = encodeURIComponent(name);
+  const cookieParts = document.cookie ? document.cookie.split(";") : [];
+
+  for (const part of cookieParts) {
+    const [rawKey, ...rest] = part.trim().split("=");
+    if (rawKey !== encodedName) continue;
+    const value = rest.join("=");
+    return value ? decodeURIComponent(value) : "";
+  }
+
+  return null;
+}
 
 export function resolveApiUrl(path) {
   if (!path) return null;
@@ -9,11 +26,19 @@ export function resolveApiUrl(path) {
 
 export async function apiRequest(path, options = {}) {
   const { method = "GET", body, headers = {} } = options;
+  const normalizedMethod = String(method).toUpperCase();
   const requestOptions = {
-    method,
+    method: normalizedMethod,
     credentials: "include",
     headers: { ...headers },
   };
+
+  if (!["GET", "HEAD", "OPTIONS"].includes(normalizedMethod)) {
+    const csrfToken = getCookieValue(CSRF_COOKIE_NAME);
+    if (csrfToken) {
+      requestOptions.headers["X-CSRF-Token"] = csrfToken;
+    }
+  }
 
   if (body !== undefined) {
     if (body instanceof FormData) {

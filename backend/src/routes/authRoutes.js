@@ -6,6 +6,7 @@ const requireAuth = require("../middleware/requireAuth");
 const env = require("../config/env");
 const httpError = require("../utils/httpError");
 const { createAuthToken, getCookieOptions } = require("../utils/authToken");
+const { issueCsrfCookie, clearCsrfCookie } = require("../utils/csrfToken");
 
 const router = express.Router();
 
@@ -50,6 +51,7 @@ router.post("/register", async (req, res, next) => {
     const token = createAuthToken(user);
 
     res.cookie(env.cookieName, token, getCookieOptions());
+    issueCsrfCookie(res);
     return res.status(201).json({ user });
   } catch (error) {
     if (error.code === "23505") {
@@ -86,6 +88,7 @@ router.post("/login", async (req, res, next) => {
     const token = createAuthToken(user);
 
     res.cookie(env.cookieName, token, getCookieOptions());
+    issueCsrfCookie(res);
     return res.json({ user });
   } catch (error) {
     return next(error);
@@ -97,6 +100,7 @@ router.post("/logout", (_req, res) => {
     ...getCookieOptions(),
     maxAge: undefined,
   });
+  clearCsrfCookie(res);
   return res.status(204).send();
 });
 
@@ -113,6 +117,10 @@ router.get("/me", requireAuth, async (req, res, next) => {
 
     if (rows.length === 0) {
       throw httpError(401, "Authenticated user no longer exists");
+    }
+
+    if (!req.cookies?.[env.csrfCookieName]) {
+      issueCsrfCookie(res);
     }
 
     return res.json({ user: toPublicUser(rows[0]) });

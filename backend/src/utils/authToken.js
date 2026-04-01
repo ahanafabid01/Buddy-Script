@@ -48,9 +48,17 @@ function getCookieOptions() {
   };
 }
 
+function getCsrfCookieOptions() {
+  return {
+    ...getCookieOptions(),
+    httpOnly: false,
+  };
+}
+
 module.exports = {
   createAuthToken,
   verifyAuthToken,
   getCookieOptions,
+  getCsrfCookieOptions,
 };
 

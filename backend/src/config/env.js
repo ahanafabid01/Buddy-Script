@@ -29,6 +29,7 @@ module.exports = {
   jwtSecret: process.env.JWT_SECRET,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
   cookieName: process.env.COOKIE_NAME || "appifylab_token",
+  csrfCookieName: process.env.CSRF_COOKIE_NAME || "appifylab_csrf",
   clientOrigin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
   uploadDir: path.resolve(process.cwd(), process.env.UPLOAD_DIR || "uploads"),
   maxFileSizeBytes: safeMaxFileSizeMb * 1024 * 1024,

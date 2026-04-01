@@ -7,9 +7,11 @@ const path = require("path");
 const env = require("./config/env");
 const authRoutes = require("./routes/authRoutes");
 const feedRoutes = require("./routes/feedRoutes");
+const csrfProtection = require("./middleware/csrfProtection");
 const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
+app.disable("x-powered-by");
 
 app.use(
   helmet({
@@ -45,6 +47,7 @@ app.use(
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+app.use(csrfProtection);
 
 app.use(
   "/uploads",
