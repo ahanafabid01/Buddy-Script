@@ -244,6 +244,7 @@ function LikerAvatarStack({ likedBy = [], totalCount = 0, size = "md" }) {
   const safeLikedBy = Array.isArray(likedBy) ? likedBy : [];
   const visible = safeLikedBy.slice(0, 3);
   const remaining = Math.max(totalCount - visible.length, 0);
+  const overflowLabel = remaining > 99 ? "99+" : `${remaining}+`;
 
   return (
     <div className={`liker-avatar-stack size-${size}`} title={likedByText(safeLikedBy)}>
@@ -252,7 +253,7 @@ function LikerAvatarStack({ likedBy = [], totalCount = 0, size = "md" }) {
           {initialsFromName(entry.name)}
         </span>
       ))}
-      {remaining > 0 ? <span className="liker-avatar-chip liker-avatar-more">+{remaining}</span> : null}
+      {remaining > 0 ? <span className="liker-avatar-chip liker-avatar-more">{overflowLabel}</span> : null}
     </div>
   );
 }
