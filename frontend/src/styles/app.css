@@ -1,0 +1,83 @@
+.app-loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Poppins", sans-serif;
+}
+
+.form-error {
+  color: #d14343;
+  font-size: 14px;
+}
+
+.feed-user-name {
+  font-size: 14px;
+  color: #232323;
+  font-weight: 500;
+}
+
+.logout-btn {
+  padding: 6px 14px;
+}
+
+.feed-meta {
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #555;
+}
+
+.composer-preview img {
+  width: 100%;
+  border-radius: 8px;
+}
+
+.liked-by-block {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 12px;
+  margin-top: 8px;
+}
+
+.liked-by-inline {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.composer-visibility-wrap {
+  margin-right: 10px;
+}
+
+.composer-visibility-select {
+  height: 36px;
+  border: 1px solid #dedede;
+  border-radius: 6px;
+  padding: 0 8px;
+  background: #fff;
+  color: #666;
+}
+
+.comment-action-btn {
+  border: none;
+  background: transparent;
+  color: #666;
+  font-size: 13px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.comment-submit-btn {
+  width: auto;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+.reply-form {
+  margin-top: 10px;
+}
+
+.reply-list {
+  margin-left: 24px;
+  margin-top: 12px;
+}

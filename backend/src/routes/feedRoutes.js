@@ -1,0 +1,146 @@
+const fs = require("fs/promises");
+const express = require("express");
+const { z } = require("zod");
+const pool = require("../db/pool");
+const requireAuth = require("../middleware/requireAuth");
+const upload = require("../middleware/upload");
+const httpError = require("../utils/httpError");
+const {
+  getPostsForFeed,
+  getPostsByIds,
+  createPost,
+  togglePostLike,
+  createComment,
+  toggleCommentLike,
+} = require("../services/feedService");
+
+const router = express.Router();
+router.use(requireAuth);
+
+const createPostSchema = z.object({
+  content: z.string().trim().min(1).max(5000),
+  visibility: z.enum(["public", "private"]).default("public"),
+});
+
+const createCommentSchema = z.object({
+  content: z.string().trim().min(1).max(2000),
+  parentCommentId: z.number().int().positive().nullable().optional(),
+});
+
+function parsePositiveInt(value, fieldName) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+    throw httpError(400, `Invalid ${fieldName}`);
+  }
+  return parsed;
+}
+
+async function removeFileIfExists(filePath) {
+  if (!filePath) return;
+  try {
+    await fs.unlink(filePath);
+  } catch (_error) {
+    // Ignore cleanup failures
+  }
+}
+
+router.get("/posts", async (req, res, next) => {
+  try {
+    const limit = req.query.limit
+      ? parsePositiveInt(req.query.limit, "limit")
+      : 10;
+
+    const cursorCreatedAt = req.query.cursorCreatedAt
+      ? new Date(req.query.cursorCreatedAt)
+      : null;
+    const cursorId = req.query.cursorId
+      ? parsePositiveInt(req.query.cursorId, "cursorId")
+      : null;
+
+    if (req.query.cursorCreatedAt && Number.isNaN(cursorCreatedAt.getTime())) {
+      throw httpError(400, "Invalid cursorCreatedAt");
+    }
+
+    const data = await getPostsForFeed(pool, req.auth.userId, {
+      limit,
+      cursorCreatedAt: cursorCreatedAt ? cursorCreatedAt.toISOString() : null,
+      cursorId,
+    });
+
+    return res.json(data);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post("/posts", upload.single("image"), async (req, res, next) => {
+  try {
+    const parsed = createPostSchema.parse({
+      content: req.body.content,
+      visibility: req.body.visibility || "public",
+    });
+
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+    const postId = await createPost(pool, {
+      userId: req.auth.userId,
+      content: parsed.content,
+      visibility: parsed.visibility,
+      imageUrl,
+    });
+
+    const posts = await getPostsByIds(pool, req.auth.userId, [postId]);
+    return res.status(201).json({ post: posts[0] });
+  } catch (error) {
+    await removeFileIfExists(req.file?.path);
+    return next(error);
+  }
+});
+
+router.post("/posts/:postId/likes/toggle", async (req, res, next) => {
+  try {
+    const postId = parsePositiveInt(req.params.postId, "postId");
+    const likes = await togglePostLike(pool, postId, req.auth.userId);
+    return res.json({ likes });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post("/posts/:postId/comments", async (req, res, next) => {
+  try {
+    const postId = parsePositiveInt(req.params.postId, "postId");
+    const parsed = createCommentSchema.parse({
+      content: req.body.content,
+      parentCommentId:
+        req.body.parentCommentId === undefined ||
+        req.body.parentCommentId === null ||
+        req.body.parentCommentId === ""
+          ? null
+          : Number.parseInt(req.body.parentCommentId, 10),
+    });
+
+    const comment = await createComment(pool, {
+      postId,
+      viewerId: req.auth.userId,
+      content: parsed.content,
+      parentCommentId: parsed.parentCommentId || null,
+    });
+
+    return res.status(201).json({ comment });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post("/comments/:commentId/likes/toggle", async (req, res, next) => {
+  try {
+    const commentId = parsePositiveInt(req.params.commentId, "commentId");
+    const likes = await toggleCommentLike(pool, commentId, req.auth.userId);
+    return res.json({ likes });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+module.exports = router;
+
