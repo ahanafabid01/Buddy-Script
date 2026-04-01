@@ -456,6 +456,73 @@ export default function FeedPage() {
             </div>
           </nav>
 
+          <div className="_header_mobile_menu">
+            <div className="_header_mobile_menu_wrap">
+              <div className="container">
+                <div className="_header_mobile_menu">
+                  <div className="row">
+                    <div className="col-xl-12 col-lg-12 col-md-12 col-sm-12">
+                      <div className="_header_mobile_menu_top_inner">
+                        <div className="_header_mobile_menu_logo">
+                          <a href="feed.html" className="_mobile_logo_link">
+                            <img src="/assets/images/logo.svg" alt="Image" className="_nav_logo" />
+                          </a>
+                        </div>
+                        <div className="_header_mobile_menu_right">
+                          <a href="#0" className="_header_mobile_search" aria-label="Search">
+                            <HeaderNavIcon name="search" />
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="_mobile_navigation_bottom_wrapper">
+            <div className="_mobile_navigation_bottom_wrap">
+              <div className="container">
+                <div className="row">
+                  <div className="col-xl-12 col-lg-12 col-md-12">
+                    <ul className="_mobile_navigation_bottom_list">
+                      <li className="_mobile_navigation_bottom_item">
+                        <a href="feed.html" className="_mobile_navigation_bottom_link _mobile_navigation_bottom_link_active" aria-label="Home">
+                          <HeaderNavIcon name="home" active />
+                        </a>
+                      </li>
+                      <li className="_mobile_navigation_bottom_item">
+                        <a href="friend-request.html" className="_mobile_navigation_bottom_link" aria-label="Friends">
+                          <HeaderNavIcon name="friends" />
+                        </a>
+                      </li>
+                      <li className="_mobile_navigation_bottom_item">
+                        <a href="#0" className="_mobile_navigation_bottom_link" aria-label="Notifications">
+                          <HeaderNavIcon name="notifications" />
+                          <span className="_counting">6</span>
+                        </a>
+                      </li>
+                      <li className="_mobile_navigation_bottom_item">
+                        <a href="chat.html" className="_mobile_navigation_bottom_link" aria-label="Chat">
+                          <HeaderNavIcon name="chat" />
+                          <span className="_counting">2</span>
+                        </a>
+                      </li>
+                      <li className="_mobile_navigation_bottom_item">
+                        <a href="#0" className="_mobile_navigation_bottom_link" aria-label="Menu">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="14" fill="none" viewBox="0 0 18 14">
+                            <path stroke="#666" strokeLinecap="round" strokeWidth="1.5" d="M1 1h16M1 7h16M1 13h16" />
+                          </svg>
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="container _custom_container">
             <div className="_layout_inner_wrap">
               <div className="row">
