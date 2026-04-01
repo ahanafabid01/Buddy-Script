@@ -79,6 +79,29 @@ function updateCommentInTree(comments, commentId, updater) {
   });
 }
 
+const MAX_POST_IMAGE_SIZE_BYTES = 8 * 1024 * 1024;
+
+function formatComposerFileSize(bytes) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 102.4) / 10} KB`;
+  return `${Math.round(bytes / (1024 * 102.4)) / 10} MB`;
+}
+
+function getComposerImageError(file) {
+  if (!file) return "";
+
+  if (!String(file.type || "").startsWith("image/")) {
+    return "Only image files are allowed.";
+  }
+
+  if (file.size > MAX_POST_IMAGE_SIZE_BYTES) {
+    return "Image must be 8MB or smaller.";
+  }
+
+  return "";
+}
+
 export default function FeedPage() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -91,6 +114,8 @@ export default function FeedPage() {
   const [postContent, setPostContent] = useState("");
   const [postVisibility, setPostVisibility] = useState("public");
   const [postImageFile, setPostImageFile] = useState(null);
+  const [postImagePreviewUrl, setPostImagePreviewUrl] = useState("");
+  const [postImageError, setPostImageError] = useState("");
   const [isPosting, setIsPosting] = useState(false);
   const [composerError, setComposerError] = useState("");
   const [isComposerFocused, setIsComposerFocused] = useState(false);
@@ -167,6 +192,20 @@ export default function FeedPage() {
     }
   };
 
+  useEffect(() => {
+    if (!postImageFile) {
+      setPostImagePreviewUrl("");
+      return undefined;
+    }
+
+    const objectUrl = URL.createObjectURL(postImageFile);
+    setPostImagePreviewUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [postImageFile]);
+
   const handleCreatePost = async () => {
     const trimmedContent = postContent.trim();
     if (!trimmedContent || isPosting) {
@@ -191,6 +230,7 @@ export default function FeedPage() {
 
       setPostContent("");
       setPostImageFile(null);
+      setPostImageError("");
       setPostVisibility("public");
       if (postImageInputRef.current) {
         postImageInputRef.current.value = "";
@@ -262,12 +302,25 @@ export default function FeedPage() {
 
   const handleComposerPhotoChange = (event) => {
     const selectedFile = event.target.files?.[0] || null;
+
+    const imageError = getComposerImageError(selectedFile);
+    if (imageError) {
+      setPostImageError(imageError);
+      setPostImageFile(null);
+      if (postImageInputRef.current) {
+        postImageInputRef.current.value = "";
+      }
+      return;
+    }
+
     setPostImageFile(selectedFile);
+    setPostImageError("");
     setComposerError("");
   };
 
   const handleComposerRemovePhoto = () => {
     setPostImageFile(null);
+    setPostImageError("");
     if (postImageInputRef.current) {
       postImageInputRef.current.value = "";
     }
@@ -660,18 +713,21 @@ export default function FeedPage() {
                                 <option value="private">Private</option>
                               </select>
                             </div>
-                            {postImageFile ? (
-                              <span className="composer-badge composer-file-badge" title={postImageFile.name}>
-                                {postImageFile.name}
-                              </span>
-                            ) : null}
                           </div>
-                          {postImageFile ? (
-                            <button type="button" className="composer-clear-btn" onClick={handleComposerRemovePhoto}>
-                              Remove image
-                            </button>
-                          ) : null}
                         </div>
+                        {postImageFile && postImagePreviewUrl ? (
+                          <div className="composer-preview-card">
+                            <img src={postImagePreviewUrl} alt="Selected post attachment" className="composer-preview-thumb" />
+                            <div className="composer-preview-meta">
+                              <p className="composer-preview-name" title={postImageFile.name}>{postImageFile.name}</p>
+                              <p className="composer-preview-size">{formatComposerFileSize(postImageFile.size)}</p>
+                            </div>
+                            <button type="button" className="composer-clear-btn composer-preview-remove" onClick={handleComposerRemovePhoto}>
+                              Remove
+                            </button>
+                          </div>
+                        ) : null}
+                        {postImageError ? <p className="form-error composer-form-error">{postImageError}</p> : null}
                         {composerError ? <p className="form-error">{composerError}</p> : null}
                         <div className="_feed_inner_text_area_bottom">
                           <div className="_feed_inner_text_area_item">

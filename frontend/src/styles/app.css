@@ -27,9 +27,56 @@
   color: #555;
 }
 
-.composer-preview img {
+.composer-preview-card {
   width: 100%;
-  border-radius: 8px;
+  max-width: 430px;
+  border: 1px solid #d9e6f5;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f8fbff 0%, #f2f7fd 100%);
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.composer-preview-thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  border: 1px solid #d6e3f2;
+  object-fit: cover;
+  background: #fff;
+}
+
+.composer-preview-meta {
+  min-width: 0;
+  flex: 1;
+}
+
+.composer-preview-name {
+  margin: 0;
+  color: #2c3a4a;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.composer-preview-size {
+  margin: 2px 0 0;
+  color: #5f7185;
+  font-size: 12px;
+}
+
+.composer-preview-remove {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 2px;
+}
+
+.composer-form-error {
+  margin: 8px 0 0;
 }
 
 .liked-by-block {
@@ -725,6 +772,15 @@
 }
 
 @media only screen and (max-width: 767px) {
+  .composer-preview-card {
+    max-width: none;
+  }
+
+  .composer-preview-thumb {
+    width: 48px;
+    height: 48px;
+  }
+
   .comment-composer-main {
     align-items: center;
     flex-direction: row;
