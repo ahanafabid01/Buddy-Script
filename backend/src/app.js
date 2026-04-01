@@ -11,7 +11,13 @@ const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
 
-app.use(helmet());
+app.use(
+  helmet({
+    // Frontend runs on a different origin during development, so uploaded images
+    // must be embeddable cross-origin.
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  }),
+);
 
 app.use(
   cors({
