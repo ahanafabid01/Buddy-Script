@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -141,7 +141,7 @@ export default function FeedPage() {
 
                 <ul className="navbar-nav mb-2 mb-lg-0 _header_nav_list ms-auto _mar_r8">
                   {NAV_ITEMS.map((item, index) => (
-                    <React.Fragment key={item.id}>
+                    <Fragment key={item.id}>
                       <li className="nav-item _header_nav_item">
                         <a
                           className={`nav-link _header_nav_link ${item.active ? "_header_nav_link_active" : ""}`}
@@ -189,7 +189,7 @@ export default function FeedPage() {
                           </span>
                         </li>
                       )}
-                    </React.Fragment>
+                    </Fragment>
                   ))}
                 </ul>
 
