@@ -438,7 +438,7 @@ function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommen
   const [replyImageFile, setReplyImageFile] = useState(null);
   const [replyImageError, setReplyImageError] = useState("");
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
-  const [showReplies, setShowReplies] = useState(true);
+  const [showReplies, setShowReplies] = useState(false);
   const [commentReaction, setCommentReaction] = useState(comment.likes?.likedByViewer ? "like" : null);
   const replyImageInputRef = useRef(null);
 
