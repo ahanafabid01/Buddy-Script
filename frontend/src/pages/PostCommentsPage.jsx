@@ -9,6 +9,7 @@ import {
   toggleFeedPostLike,
 } from "../api/feed";
 import { TimelinePost } from "./feed/FeedSubcomponents";
+import { readFeedDarkMode } from "../utils/theme";
 
 function normalizePost(post) {
   return {
@@ -87,10 +88,24 @@ function mergeTopLevelComments(existingComments, incomingComments) {
 export default function PostCommentsPage() {
   const navigate = useNavigate();
   const { postId } = useParams();
+  const [isDarkMode, setIsDarkMode] = useState(() => readFeedDarkMode());
 
   const [post, setPost] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const syncTheme = () => {
+      setIsDarkMode(readFeedDarkMode());
+    };
+
+    syncTheme();
+    window.addEventListener("storage", syncTheme);
+
+    return () => {
+      window.removeEventListener("storage", syncTheme);
+    };
+  }, []);
 
   useEffect(() => {
     const loadPost = async () => {
@@ -224,33 +239,35 @@ export default function PostCommentsPage() {
   };
 
   return (
-    <div className="post-comments-page">
-      <header className="post-comments-header">
-        <button type="button" className="post-comments-back" onClick={() => navigate(-1)} aria-label="Go back">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 20 20" aria-hidden="true">
-            <path d="M12.5 4.167L6.667 10l5.833 5.833" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-        <h1 className="post-comments-title">{post?.author?.fullName ? `${post.author.fullName}'s post` : "Post"}</h1>
-        <div className="post-comments-spacer" aria-hidden="true" />
-      </header>
+    <div className={isDarkMode ? "_dark_wrapper" : ""}>
+      <div className="post-comments-page">
+        <header className="post-comments-header">
+          <button type="button" className="post-comments-back" onClick={() => navigate(-1)} aria-label="Go back">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M12.5 4.167L6.667 10l5.833 5.833" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <h1 className="post-comments-title">{post?.author?.fullName ? `${post.author.fullName}'s post` : "Post"}</h1>
+          <div className="post-comments-spacer" aria-hidden="true" />
+        </header>
 
-      <main className="post-comments-content">
-        {isLoading ? <p className="post-comments-status">Loading post...</p> : null}
-        {!isLoading && error ? <p className="post-comments-status post-comments-status-error">{error}</p> : null}
-        {!isLoading && !error && post ? (
-          <TimelinePost
-            post={post}
-            onTogglePostLike={handleTogglePostLike}
-            onCreateComment={handleCreateComment}
-            onLoadMoreComments={handleLoadMoreComments}
-            onToggleCommentLike={handleToggleCommentLike}
-            onOpenComments={() => {}}
-            onOpenReactions={handleOpenPostReactions}
-            onOpenCommentReactions={handleOpenCommentReactions}
-          />
-        ) : null}
-      </main>
+        <main className="post-comments-content">
+          {isLoading ? <p className="post-comments-status">Loading post...</p> : null}
+          {!isLoading && error ? <p className="post-comments-status post-comments-status-error">{error}</p> : null}
+          {!isLoading && !error && post ? (
+            <TimelinePost
+              post={post}
+              onTogglePostLike={handleTogglePostLike}
+              onCreateComment={handleCreateComment}
+              onLoadMoreComments={handleLoadMoreComments}
+              onToggleCommentLike={handleToggleCommentLike}
+              onOpenComments={() => {}}
+              onOpenReactions={handleOpenPostReactions}
+              onOpenCommentReactions={handleOpenCommentReactions}
+            />
+          ) : null}
+        </main>
+      </div>
     </div>
   );
 }

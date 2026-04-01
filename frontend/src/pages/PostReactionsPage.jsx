@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getFeedPostReactions } from "../api/feed";
+import { readFeedDarkMode } from "../utils/theme";
 
 const REACTION_META = {
   like: { label: "Like", glyph: "👍" },
@@ -40,11 +41,25 @@ function initialsFromName(name = "") {
 export default function PostReactionsPage() {
   const navigate = useNavigate();
   const { postId } = useParams();
+  const [isDarkMode, setIsDarkMode] = useState(() => readFeedDarkMode());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [reactions, setReactions] = useState([]);
   const [reactionCounts, setReactionCounts] = useState(emptyReactionCounts());
   const [activeFilter, setActiveFilter] = useState("all");
+
+  useEffect(() => {
+    const syncTheme = () => {
+      setIsDarkMode(readFeedDarkMode());
+    };
+
+    syncTheme();
+    window.addEventListener("storage", syncTheme);
+
+    return () => {
+      window.removeEventListener("storage", syncTheme);
+    };
+  }, []);
 
   useEffect(() => {
     const loadReactions = async () => {
@@ -91,73 +106,75 @@ export default function PostReactionsPage() {
     : `No ${REACTION_META[activeFilter]?.label || activeFilter} reactions yet.`;
 
   return (
-    <div className="post-reactions-page">
-      <header className="post-reactions-header">
-        <button type="button" className="post-reactions-back" onClick={() => navigate(-1)} aria-label="Go back">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 20 20" aria-hidden="true">
-            <path d="M12.5 4.167L6.667 10l5.833 5.833" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-        <h1 className="post-reactions-title">People who have reacted</h1>
-        <button type="button" className="post-reactions-close" onClick={() => navigate(-1)} aria-label="Close reactions page">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 20 20" aria-hidden="true">
-            <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          </svg>
-        </button>
-      </header>
+    <div className={isDarkMode ? "_dark_wrapper" : ""}>
+      <div className="post-reactions-page">
+        <header className="post-reactions-header">
+          <button type="button" className="post-reactions-back" onClick={() => navigate(-1)} aria-label="Go back">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M12.5 4.167L6.667 10l5.833 5.833" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <h1 className="post-reactions-title">People who have reacted</h1>
+          <button type="button" className="post-reactions-close" onClick={() => navigate(-1)} aria-label="Close reactions page">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+          </button>
+        </header>
 
-      <main className="post-reactions-content">
-        {isLoading ? <p className="post-reactions-status">Loading reactions...</p> : null}
-        {!isLoading && error ? <p className="post-reactions-status post-reactions-status-error">{error}</p> : null}
+        <main className="post-reactions-content">
+          {isLoading ? <p className="post-reactions-status">Loading reactions...</p> : null}
+          {!isLoading && error ? <p className="post-reactions-status post-reactions-status-error">{error}</p> : null}
 
-        {!isLoading && !error ? (
-          <section className="post-reactions-card">
-            <div className="post-reactions-tabs" role="tablist" aria-label="Reactions tabs">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeFilter === "all"}
-                className={`post-reactions-tab ${activeFilter === "all" ? "is-active" : ""}`}
-                onClick={() => setActiveFilter("all")}
-              >
-                All <span>{totalCount}</span>
-              </button>
-              {visibleTabs.map((reactionType) => (
+          {!isLoading && !error ? (
+            <section className="post-reactions-card">
+              <div className="post-reactions-tabs" role="tablist" aria-label="Reactions tabs">
                 <button
-                  key={reactionType}
                   type="button"
                   role="tab"
-                  aria-selected={activeFilter === reactionType}
-                  className={`post-reactions-tab ${activeFilter === reactionType ? "is-active" : ""}`}
-                  onClick={() => setActiveFilter(reactionType)}
+                  aria-selected={activeFilter === "all"}
+                  className={`post-reactions-tab ${activeFilter === "all" ? "is-active" : ""}`}
+                  onClick={() => setActiveFilter("all")}
                 >
-                  {REACTION_META[reactionType].glyph} <span>{reactionCounts[reactionType] || 0}</span>
+                  All <span>{totalCount}</span>
                 </button>
-              ))}
-            </div>
+                {visibleTabs.map((reactionType) => (
+                  <button
+                    key={reactionType}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeFilter === reactionType}
+                    className={`post-reactions-tab ${activeFilter === reactionType ? "is-active" : ""}`}
+                    onClick={() => setActiveFilter(reactionType)}
+                  >
+                    {REACTION_META[reactionType].glyph} <span>{reactionCounts[reactionType] || 0}</span>
+                  </button>
+                ))}
+              </div>
 
-            {filteredReactions.length === 0 ? (
-              <p className="post-reactions-empty">{emptyMessage}</p>
-            ) : (
-              <ul className="post-reactions-list">
-                {filteredReactions.map((entry, index) => {
-                  const meta = REACTION_META[entry.reactionType] || REACTION_META.like;
+              {filteredReactions.length === 0 ? (
+                <p className="post-reactions-empty">{emptyMessage}</p>
+              ) : (
+                <ul className="post-reactions-list">
+                  {filteredReactions.map((entry, index) => {
+                    const meta = REACTION_META[entry.reactionType] || REACTION_META.like;
 
-                  return (
-                  <li key={`${entry.userId}-${index}`} className="post-reactions-item">
-                    <span className="post-reactions-avatar" aria-hidden="true">{initialsFromName(entry.fullName)}</span>
-                    <div className="post-reactions-user-meta">
-                      <p className="post-reactions-user-name">{entry.fullName || "Unknown user"}</p>
-                      <p className="post-reactions-user-reaction">{meta.glyph} {meta.label}</p>
-                    </div>
-                  </li>
-                  );
-                })}
-              </ul>
-            )}
-          </section>
-        ) : null}
-      </main>
+                    return (
+                    <li key={`${entry.userId}-${index}`} className="post-reactions-item">
+                      <span className="post-reactions-avatar" aria-hidden="true">{initialsFromName(entry.fullName)}</span>
+                      <div className="post-reactions-user-meta">
+                        <p className="post-reactions-user-name">{entry.fullName || "Unknown user"}</p>
+                        <p className="post-reactions-user-reaction">{meta.glyph} {meta.label}</p>
+                      </div>
+                    </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
+          ) : null}
+        </main>
+      </div>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { resolveApiUrl } from "../api/client";
+import { persistFeedDarkMode, readFeedDarkMode } from "../utils/theme";
 import {
   createFeedComment,
   createFeedPost,
@@ -131,7 +132,7 @@ function getComposerImageError(file) {
 export default function FeedPage() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => readFeedDarkMode());
   const [notifyOpen, setNotifyOpen] = useState(false);
   const [profileDropOpen, setProfileDropOpen] = useState(false);
   const [posts, setPosts] = useState([]);
@@ -422,6 +423,10 @@ export default function FeedPage() {
   useEffect(() => {
     loadPosts();
   }, []);
+
+  useEffect(() => {
+    persistFeedDarkMode(darkMode);
+  }, [darkMode]);
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
