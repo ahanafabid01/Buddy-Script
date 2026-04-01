@@ -222,6 +222,23 @@ function likedByText(likedBy = []) {
   return likedBy.map((entry) => entry.name).join(", ");
 }
 
+function likedBySummary(likedBy = [], totalCount = 0) {
+  if (!Array.isArray(likedBy) || likedBy.length === 0 || totalCount === 0) {
+    return "No likes yet";
+  }
+
+  if (totalCount === 1) {
+    return `Liked by ${likedBy[0].name}`;
+  }
+
+  if (totalCount === 2 && likedBy.length >= 2) {
+    return `Liked by ${likedBy[0].name} and ${likedBy[1].name}`;
+  }
+
+  const remaining = Math.max(totalCount - 2, 0);
+  return `Liked by ${likedBy[0].name}, ${likedBy[1]?.name || "others"}${remaining > 0 ? ` and ${remaining} others` : ""}`;
+}
+
 function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommentLike }) {
   const [showReplyInput, setShowReplyInput] = useState(false);
   const [replyContent, setReplyContent] = useState("");
@@ -247,36 +264,40 @@ function CommentThread({ postId, comment, depth, onCreateComment, onToggleCommen
   };
 
   return (
-    <div style={{ marginLeft: `${depth * 20}px`, marginTop: "10px" }}>
+    <div className="comment-thread" style={{ marginLeft: `${depth * 20}px` }}>
       <div className="_feed_inner_comment_box_content">
         <div className="_feed_inner_comment_box_content_image">
           <img src="/assets/images/comment_img.png" alt="" className="_comment_img" />
         </div>
-        <div className="_feed_inner_comment_box_content_txt" style={{ width: "100%" }}>
+        <div className="_feed_inner_comment_box_content_txt comment-thread-body">
           <p className="_feed_inner_timeline_post_box_para">
             <strong>{comment.author?.fullName || "Unknown"}</strong> . {formatTimeAgo(comment.createdAt)}
           </p>
-          <p className="_feed_inner_timeline_post_title" style={{ fontSize: "14px", marginBottom: "8px" }}>{comment.content}</p>
+          <p className="comment-thread-text">{comment.content}</p>
           <p className="_feed_inner_timeline_post_box_para" title={likedByText(comment.likes?.likedBy)}>
             Liked by: {likedByText(comment.likes?.likedBy)}
           </p>
-          <div style={{ display: "flex", gap: "8px", marginTop: "6px" }}>
-            <button type="button" className="_feed_inner_text_area_bottom_photo_link" onClick={() => onToggleCommentLike(comment.id)}>
+          <div className="comment-thread-actions">
+            <button
+              type="button"
+              className={`comment-action-btn ${comment.likes?.likedByViewer ? "is-active" : ""}`}
+              onClick={() => onToggleCommentLike(comment.id)}
+            >
               {comment.likes?.likedByViewer ? "Unlike" : "Like"} ({comment.likes?.count || 0})
             </button>
-            <button type="button" className="_feed_inner_text_area_bottom_photo_link" onClick={() => setShowReplyInput((previous) => !previous)}>
+            <button type="button" className="comment-action-btn" onClick={() => setShowReplyInput((previous) => !previous)}>
               Reply
             </button>
           </div>
           {showReplyInput ? (
-            <form onSubmit={handleReplySubmit} style={{ marginTop: "8px" }}>
+            <form onSubmit={handleReplySubmit} className="reply-form">
               <textarea
                 className="form-control _comment_textarea"
                 placeholder="Write a reply"
                 value={replyContent}
                 onChange={(event) => setReplyContent(event.target.value)}
               />
-              <button type="submit" className="_feed_inner_text_area_bottom_photo_link" style={{ marginTop: "8px" }} disabled={isSubmittingReply}>
+              <button type="submit" className="comment-submit-btn" disabled={isSubmittingReply}>
                 {isSubmittingReply ? "Replying..." : "Reply"}
               </button>
             </form>
@@ -375,6 +396,11 @@ export function TimelinePost({
           <p className="_feed_inner_timeline_total_reacts_para2"><span>{post.shares || 0}</span> Share</p>
         </div>
       </div>
+      <div className="_padd_r24 _padd_l24">
+        <p className="liked-by-block" title={likedByText(post.likes?.likedBy)}>
+          {likedBySummary(post.likes?.likedBy, post.likes?.count || 0)}
+        </p>
+      </div>
 
       <div className="_feed_inner_timeline_reaction">
         <button
@@ -408,7 +434,7 @@ export function TimelinePost({
                 />
               </div>
             </div>
-            <button type="submit" className="_feed_inner_text_area_bottom_photo_link" style={{ marginTop: "8px" }} disabled={isSubmittingComment}>
+            <button type="submit" className="comment-submit-btn" disabled={isSubmittingComment}>
               {isSubmittingComment ? "Commenting..." : "Comment"}
             </button>
           </form>

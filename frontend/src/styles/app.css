@@ -81,3 +81,143 @@
   margin-left: 24px;
   margin-top: 12px;
 }
+
+.composer-meta-row {
+  margin: 12px 0 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.composer-meta-left {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.composer-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.composer-badge.is-public {
+  background: #edf6ff;
+  color: #1468c4;
+}
+
+.composer-badge.is-private {
+  background: #f6f0ff;
+  color: #6a3db0;
+}
+
+.composer-file-badge {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: #f4f6f8;
+  color: #415265;
+}
+
+.composer-audience-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  padding: 3px 8px;
+}
+
+.composer-audience-picker.is-public {
+  background: #edf6ff;
+}
+
+.composer-audience-picker.is-private {
+  background: #f6f0ff;
+}
+
+.composer-audience-label {
+  color: #546170;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.composer-audience-select {
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1f5fb5;
+  padding-right: 4px;
+  cursor: pointer;
+}
+
+.composer-audience-select:focus {
+  outline: none;
+}
+
+.composer-clear-btn {
+  border: none;
+  background: transparent;
+  color: #d14343;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+}
+
+.comment-thread {
+  margin-top: 12px;
+  padding-left: 10px;
+  border-left: 2px solid #eef1f5;
+}
+
+.comment-thread-body {
+  width: 100%;
+}
+
+.comment-thread-text {
+  font-size: 14px;
+  line-height: 1.45;
+  color: #2d3b4c;
+  margin-bottom: 6px;
+}
+
+.comment-thread-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.comment-action-btn.is-active {
+  color: #377dff;
+  font-weight: 600;
+}
+
+.reply-form {
+  margin-top: 10px;
+}
+
+.comment-submit-btn {
+  margin-top: 8px;
+  border: 1px solid #d3e3ff;
+  background: #f5f9ff;
+  color: #1f64c8;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.comment-submit-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
