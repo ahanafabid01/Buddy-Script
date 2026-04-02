@@ -6,8 +6,7 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
-    "db:migrate": "node scripts/migrate.js",
-    "db:migrate:uploads": "node scripts/migrateUploadsToDataUrls.js"
+    "db:migrate": "node scripts/migrate.js"
   },
   "keywords": [],
   "author": "",
