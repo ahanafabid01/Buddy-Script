@@ -107,6 +107,8 @@ function updateCommentInTree(comments, commentId, updater) {
 }
 
 const MAX_POST_IMAGE_SIZE_BYTES = 8 * 1024 * 1024;
+const FEED_PAGE_SIZE = 10;
+const FEED_COMMENT_PREVIEW_LIMIT = 1;
 
 function formatComposerFileSize(bytes) {
   if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
@@ -136,7 +138,9 @@ export default function FeedPage() {
   const [notifyOpen, setNotifyOpen] = useState(false);
   const [profileDropOpen, setProfileDropOpen] = useState(false);
   const [posts, setPosts] = useState([]);
+  const [feedNextCursor, setFeedNextCursor] = useState(null);
   const [isFeedLoading, setIsFeedLoading] = useState(true);
+  const [isLoadingMorePosts, setIsLoadingMorePosts] = useState(false);
   const [feedError, setFeedError] = useState("");
   const [postContent, setPostContent] = useState("");
   const [postVisibility, setPostVisibility] = useState("public");
@@ -210,12 +214,45 @@ export default function FeedPage() {
     try {
       setIsFeedLoading(true);
       setFeedError("");
-      const data = await getFeedPosts({ limit: 30, commentPreviewLimit: 2 });
+      const data = await getFeedPosts({
+        limit: FEED_PAGE_SIZE,
+        commentPreviewLimit: FEED_COMMENT_PREVIEW_LIMIT,
+      });
       setPosts((data.posts || []).map(normalizePost));
+      setFeedNextCursor(data.nextCursor || null);
     } catch (error) {
       setFeedError(error.message || "Failed to load feed");
     } finally {
       setIsFeedLoading(false);
+    }
+  };
+
+  const handleLoadMorePosts = async () => {
+    if (!feedNextCursor || isLoadingMorePosts) return;
+
+    try {
+      setIsLoadingMorePosts(true);
+      const data = await getFeedPosts({
+        limit: FEED_PAGE_SIZE,
+        commentPreviewLimit: FEED_COMMENT_PREVIEW_LIMIT,
+        cursorCreatedAt: feedNextCursor.createdAt,
+        cursorId: feedNextCursor.id,
+      });
+
+      const incomingPosts = (data.posts || []).map(normalizePost);
+      setPosts((previous) => {
+        if (incomingPosts.length === 0) return previous;
+
+        const existingIds = new Set(previous.map((post) => post.id));
+        const uniqueIncoming = incomingPosts.filter((post) => !existingIds.has(post.id));
+        return uniqueIncoming.length > 0 ? [...previous, ...uniqueIncoming] : previous;
+      });
+
+      setFeedNextCursor(data.nextCursor || null);
+    } catch (error) {
+      setFeedError(error.message || "Failed to load more posts");
+    } finally {
+      setIsLoadingMorePosts(false);
     }
   };
 
@@ -962,6 +999,18 @@ export default function FeedPage() {
                           preferTextOnlyCollapsed
                         />
                       ))}
+                      {!isFeedLoading && feedNextCursor ? (
+                        <div className="feed-load-more-wrap">
+                          <button
+                            type="button"
+                            className="feed-load-more-btn"
+                            onClick={handleLoadMorePosts}
+                            disabled={isLoadingMorePosts}
+                          >
+                            {isLoadingMorePosts ? "Loading..." : "Load more posts"}
+                          </button>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 </div>

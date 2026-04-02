@@ -1,5 +1,6 @@
 const express = require("express");
 const { z } = require("zod");
+const sharp = require("sharp");
 const pool = require("../db/pool");
 const requireAuth = require("../middleware/requireAuth");
 const upload = require("../middleware/upload");
@@ -41,10 +42,38 @@ function parsePositiveInt(value, fieldName) {
   return parsed;
 }
 
-function fileToDataUrl(file) {
+const MAX_STORED_IMAGE_DIMENSION = 1400;
+const STORED_IMAGE_QUALITY = 78;
+
+async function fileToDataUrl(file) {
   if (!file) return null;
-  const mimeType = String(file.mimetype || "application/octet-stream");
-  return `data:${mimeType};base64,${file.buffer.toString("base64")}`;
+
+  const sourceMimeType = String(file.mimetype || "application/octet-stream");
+  if (!file.buffer || !Buffer.isBuffer(file.buffer)) {
+    throw httpError(400, "Invalid uploaded image");
+  }
+
+  // Keep GIF as-is so animation is not lost; optimize other formats as webp.
+  if (sourceMimeType === "image/gif") {
+    return `data:${sourceMimeType};base64,${file.buffer.toString("base64")}`;
+  }
+
+  try {
+    const optimizedBuffer = await sharp(file.buffer, { failOnError: false })
+      .rotate()
+      .resize({
+        width: MAX_STORED_IMAGE_DIMENSION,
+        height: MAX_STORED_IMAGE_DIMENSION,
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .webp({ quality: STORED_IMAGE_QUALITY })
+      .toBuffer();
+
+    return `data:image/webp;base64,${optimizedBuffer.toString("base64")}`;
+  } catch (_error) {
+    return `data:${sourceMimeType};base64,${file.buffer.toString("base64")}`;
+  }
 }
 
 router.get("/posts", async (req, res, next) => {
@@ -87,7 +116,7 @@ router.post("/posts", upload.single("image"), async (req, res, next) => {
       visibility: req.body.visibility || "public",
     });
 
-    const imageUrl = fileToDataUrl(req.file);
+    const imageUrl = await fileToDataUrl(req.file);
     const postId = await createPost(pool, {
       userId: req.auth.userId,
       content: parsed.content,
@@ -193,7 +222,7 @@ router.post("/posts/:postId/comments", upload.single("image"), async (req, res, 
       viewerId: req.auth.userId,
       content: parsed.content || null,
       parentCommentId: parsed.parentCommentId || null,
-      imageUrl: fileToDataUrl(req.file),
+      imageUrl: await fileToDataUrl(req.file),
     });
 
     return res.status(201).json({ comment });

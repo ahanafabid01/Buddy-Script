@@ -588,7 +588,13 @@ function CommentThread({
             {comment.content ? <p className="comment-thread-text">{comment.content}</p> : null}
             {comment.imageUrl ? (
               <div className="comment-image-wrap">
-                <img src={resolveApiUrl(comment.imageUrl)} alt="Comment attachment" className="comment-image" />
+                <img
+                  src={resolveApiUrl(comment.imageUrl)}
+                  alt="Comment attachment"
+                  className="comment-image"
+                  loading="lazy"
+                  decoding="async"
+                />
               </div>
             ) : null}
           </div>
@@ -911,7 +917,14 @@ export function TimelinePost({
         ) : null}
         {post.imageUrl || post.image ? (
           <div className="_feed_inner_timeline_image">
-            <img src={post.imageUrl || post.image} alt="" className="_time_img" />
+            <img
+              src={post.imageUrl || post.image}
+              alt=""
+              className="_time_img"
+              loading="lazy"
+              decoding="async"
+              fetchPriority="low"
+            />
           </div>
         ) : null}
       </div>
