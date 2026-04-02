@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import FeedPage from "./pages/FeedPage";
 import LoginPage from "./pages/LoginPage";
@@ -23,32 +23,45 @@ function PublicOnlyRoute({ children }) {
 }
 
 export default function App() {
+  const location = useLocation();
+  const backgroundLocation = location.state?.backgroundLocation;
+
   return (
-    <Routes>
-      <Route
-        path="/login"
-        element={
-          <PublicOnlyRoute>
-            <LoginPage />
-          </PublicOnlyRoute>
-        }
-      />
-      <Route
-        path="/register"
-        element={
-          <PublicOnlyRoute>
-            <RegisterPage />
-          </PublicOnlyRoute>
-        }
-      />
-      <Route element={<ProtectedRoute />}>
-        <Route path="/feed" element={<FeedPage />} />
-        <Route path="/feed/comment/:commentId/reactions" element={<CommentReactionsPage />} />
-        <Route path="/feed/post/:postId" element={<PostCommentsPage />} />
-        <Route path="/feed/post/:postId/reactions" element={<PostReactionsPage />} />
-      </Route>
-      <Route path="*" element={<Navigate to="/feed" replace />} />
-    </Routes>
+    <>
+      <Routes location={backgroundLocation || location}>
+        <Route
+          path="/login"
+          element={
+            <PublicOnlyRoute>
+              <LoginPage />
+            </PublicOnlyRoute>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <PublicOnlyRoute>
+              <RegisterPage />
+            </PublicOnlyRoute>
+          }
+        />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/feed" element={<FeedPage />} />
+          <Route path="/feed/comment/:commentId/reactions" element={<CommentReactionsPage />} />
+          <Route path="/feed/post/:postId" element={<PostCommentsPage />} />
+          <Route path="/feed/post/:postId/reactions" element={<PostReactionsPage />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/feed" replace />} />
+      </Routes>
+
+      {backgroundLocation ? (
+        <Routes>
+          <Route element={<ProtectedRoute />}>
+            <Route path="/feed/post/:postId" element={<PostCommentsPage modal />} />
+          </Route>
+        </Routes>
+      ) : null}
+    </>
   );
 }
 

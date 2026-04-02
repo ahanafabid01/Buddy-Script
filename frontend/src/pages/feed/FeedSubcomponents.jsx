@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { resolveApiUrl } from "../../api/client";
 
 export function HeaderNavIcon({ name, active = false, className = "" }) {
@@ -254,7 +254,12 @@ function reactionGlyph(reactionType) {
   return REACTION_OPTIONS.find((option) => option.id === reactionType)?.glyph || "👍";
 }
 
-function LikerAvatarStack({ likedBy = [], reactionCounts = null, totalCount = 0, size = "md" }) {
+const LikerAvatarStack = memo(function LikerAvatarStack({
+  likedBy = [],
+  reactionCounts = null,
+  totalCount = 0,
+  size = "md",
+}) {
   if (totalCount === 0) return null;
 
   const safeLikedBy = Array.isArray(likedBy) ? likedBy : [];
@@ -283,7 +288,7 @@ function LikerAvatarStack({ likedBy = [], reactionCounts = null, totalCount = 0,
       ))}
     </div>
   );
-}
+});
 
 function findReactionById(reactionId) {
   return REACTION_OPTIONS.find((option) => option.id === reactionId) || REACTION_OPTIONS[0];
@@ -457,7 +462,13 @@ function ReactionAction({
   );
 }
 
-function CommentThread({
+function areEqualCommentThreadProps(previous, next) {
+  return previous.postId === next.postId
+    && previous.depth === next.depth
+    && previous.comment === next.comment;
+}
+
+const CommentThread = memo(function CommentThread({
   postId,
   comment,
   depth,
@@ -706,9 +717,15 @@ function CommentThread({
       ) : null}
     </div>
   );
+}, areEqualCommentThreadProps);
+
+function areEqualTimelinePostProps(previous, next) {
+  return previous.post === next.post
+    && previous.initialVisibleTopLevelComments === next.initialVisibleTopLevelComments
+    && previous.preferTextOnlyCollapsed === next.preferTextOnlyCollapsed;
 }
 
-export function TimelinePost({
+export const TimelinePost = memo(function TimelinePost({
   post,
   onTogglePostLike,
   onCreateComment,
@@ -1085,7 +1102,7 @@ export function TimelinePost({
       </div>
     </div>
   );
-}
+}, areEqualTimelinePostProps);
 
 export function RightFriendItem({ friend }) {
   return (

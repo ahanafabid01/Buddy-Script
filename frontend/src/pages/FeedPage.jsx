@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { resolveApiUrl } from "../api/client";
 import { persistFeedDarkMode, readFeedDarkMode } from "../utils/theme";
@@ -133,6 +133,7 @@ function getComposerImageError(file) {
 
 export default function FeedPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
   const [darkMode, setDarkMode] = useState(() => readFeedDarkMode());
   const [notifyOpen, setNotifyOpen] = useState(false);
@@ -404,11 +405,25 @@ export default function FeedPage() {
     }
   };
 
-  const handleOpenPostComments = (postId) => {
-    if (typeof window === "undefined") return;
-    if (!window.matchMedia("(max-width: 767px)").matches) return;
+  const openPostDetails = (postId) => {
+    if (typeof window === "undefined") {
+      navigate(`/feed/post/${postId}`);
+      return;
+    }
+
+    const isDesktopViewport = window.matchMedia("(min-width: 768px)").matches;
+    if (isDesktopViewport) {
+      navigate(`/feed/post/${postId}`, {
+        state: { backgroundLocation: location },
+      });
+      return;
+    }
 
     navigate(`/feed/post/${postId}`);
+  };
+
+  const handleOpenPostComments = (postId) => {
+    openPostDetails(postId);
   };
 
   const handleOpenPostReactions = (postId) => {
@@ -416,7 +431,7 @@ export default function FeedPage() {
   };
 
   const handleOpenPostDetails = (postId) => {
-    navigate(`/feed/post/${postId}`);
+    openPostDetails(postId);
   };
 
   const handleOpenCommentReactions = (commentId) => {

@@ -85,7 +85,7 @@ function mergeTopLevelComments(existingComments, incomingComments) {
   });
 }
 
-export default function PostCommentsPage() {
+export default function PostCommentsPage({ modal = false }) {
   const navigate = useNavigate();
   const { postId } = useParams();
   const [isDarkMode, setIsDarkMode] = useState(() => readFeedDarkMode());
@@ -129,6 +129,37 @@ export default function PostCommentsPage() {
 
     loadPost();
   }, [postId]);
+
+  useEffect(() => {
+    if (!modal) return undefined;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleEscape = (event) => {
+      if (event.key !== "Escape") return;
+      if (window.history.length > 1) {
+        navigate(-1);
+        return;
+      }
+      navigate("/feed", { replace: true });
+    };
+
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [modal, navigate]);
+
+  const handleClose = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    navigate("/feed", { replace: true });
+  };
 
   const handleTogglePostLike = async (targetPostId, reactionType = "like") => {
     try {
@@ -238,36 +269,51 @@ export default function PostCommentsPage() {
     navigate(`/feed/comment/${commentId}/reactions`);
   };
 
+  const pageContent = (
+    <div className="post-comments-page">
+      <header className="post-comments-header">
+        <button type="button" className="post-comments-back" onClick={handleClose} aria-label={modal ? "Close" : "Go back"}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M12.5 4.167L6.667 10l5.833 5.833" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <h1 className="post-comments-title">{post?.author?.fullName ? `${post.author.fullName}'s post` : "Post"}</h1>
+        <div className="post-comments-spacer" aria-hidden="true" />
+      </header>
+
+      <main className="post-comments-content">
+        {isLoading ? <p className="post-comments-status">Loading post...</p> : null}
+        {!isLoading && error ? <p className="post-comments-status post-comments-status-error">{error}</p> : null}
+        {!isLoading && !error && post ? (
+          <TimelinePost
+            post={post}
+            onTogglePostLike={handleTogglePostLike}
+            onCreateComment={handleCreateComment}
+            onLoadMoreComments={handleLoadMoreComments}
+            onToggleCommentLike={handleToggleCommentLike}
+            onOpenComments={() => {}}
+            onOpenReactions={handleOpenPostReactions}
+            onOpenCommentReactions={handleOpenCommentReactions}
+          />
+        ) : null}
+      </main>
+    </div>
+  );
+
+  if (modal) {
+    return (
+      <div className={`post-comments-modal-root ${isDarkMode ? "_dark_wrapper" : ""}`} role="dialog" aria-modal="true" aria-label="Post details dialog">
+        <button type="button" className="post-comments-modal-backdrop" onClick={handleClose} aria-label="Close post details" />
+        <section className="post-comments-modal-panel" onClick={(event) => event.stopPropagation()}>
+          {pageContent}
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className={isDarkMode ? "_dark_wrapper" : ""}>
-      <div className="post-comments-page">
-        <header className="post-comments-header">
-          <button type="button" className="post-comments-back" onClick={() => navigate(-1)} aria-label="Go back">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 20 20" aria-hidden="true">
-              <path d="M12.5 4.167L6.667 10l5.833 5.833" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-          <h1 className="post-comments-title">{post?.author?.fullName ? `${post.author.fullName}'s post` : "Post"}</h1>
-          <div className="post-comments-spacer" aria-hidden="true" />
-        </header>
-
-        <main className="post-comments-content">
-          {isLoading ? <p className="post-comments-status">Loading post...</p> : null}
-          {!isLoading && error ? <p className="post-comments-status post-comments-status-error">{error}</p> : null}
-          {!isLoading && !error && post ? (
-            <TimelinePost
-              post={post}
-              onTogglePostLike={handleTogglePostLike}
-              onCreateComment={handleCreateComment}
-              onLoadMoreComments={handleLoadMoreComments}
-              onToggleCommentLike={handleToggleCommentLike}
-              onOpenComments={() => {}}
-              onOpenReactions={handleOpenPostReactions}
-              onOpenCommentReactions={handleOpenCommentReactions}
-            />
-          ) : null}
-        </main>
-      </div>
+      {pageContent}
     </div>
   );
 }
