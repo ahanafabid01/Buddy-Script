@@ -420,6 +420,25 @@
   margin-bottom: 16px;
 }
 
+.timeline-post-image-trigger {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  display: block;
+}
+
+.timeline-post-image-trigger.is-clickable {
+  cursor: pointer;
+}
+
+.timeline-post-image-trigger:focus-visible {
+  outline: 2px solid #2f78d8;
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
 .feed-load-more-wrap {
   display: flex;
   justify-content: center;

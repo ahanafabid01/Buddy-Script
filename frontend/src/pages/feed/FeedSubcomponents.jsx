@@ -715,6 +715,7 @@ export function TimelinePost({
   onLoadMoreComments,
   onToggleCommentLike,
   onOpenComments,
+  onOpenPostDetails,
   onOpenReactions,
   onOpenCommentReactions,
   initialVisibleTopLevelComments = 2,
@@ -872,6 +873,18 @@ export function TimelinePost({
     onOpenReactions(post.id);
   };
 
+  const canOpenPostDetails = typeof onOpenPostDetails === "function" || typeof onOpenComments === "function";
+  const handleOpenPostDetails = () => {
+    if (typeof onOpenPostDetails === "function") {
+      onOpenPostDetails(post.id);
+      return;
+    }
+
+    if (typeof onOpenComments === "function") {
+      onOpenComments(post.id);
+    }
+  };
+
   return (
     <div className="_feed_inner_timeline_post_area _b_radious6 _padd_b24 _padd_t24 _mar_b16">
       <div className="_feed_inner_timeline_content _padd_r24 _padd_l24">
@@ -917,14 +930,22 @@ export function TimelinePost({
         ) : null}
         {post.imageUrl || post.image ? (
           <div className="_feed_inner_timeline_image">
-            <img
-              src={post.imageUrl || post.image}
-              alt=""
-              className="_time_img"
-              loading="lazy"
-              decoding="async"
-              fetchPriority="low"
-            />
+            <button
+              type="button"
+              className={`timeline-post-image-trigger ${canOpenPostDetails ? "is-clickable" : ""}`}
+              onClick={handleOpenPostDetails}
+              disabled={!canOpenPostDetails}
+              aria-label="Open post details"
+            >
+              <img
+                src={post.imageUrl || post.image}
+                alt=""
+                className="_time_img"
+                loading="lazy"
+                decoding="async"
+                fetchPriority="low"
+              />
+            </button>
           </div>
         ) : null}
       </div>

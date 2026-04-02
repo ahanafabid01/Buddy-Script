@@ -415,6 +415,10 @@ export default function FeedPage() {
     navigate(`/feed/post/${postId}/reactions`);
   };
 
+  const handleOpenPostDetails = (postId) => {
+    navigate(`/feed/post/${postId}`);
+  };
+
   const handleOpenCommentReactions = (commentId) => {
     navigate(`/feed/comment/${commentId}/reactions`);
   };
@@ -993,6 +997,7 @@ export default function FeedPage() {
                           onLoadMoreComments={handleLoadMoreComments}
                           onToggleCommentLike={handleToggleCommentLike}
                           onOpenComments={handleOpenPostComments}
+                          onOpenPostDetails={handleOpenPostDetails}
                           onOpenReactions={handleOpenPostReactions}
                           onOpenCommentReactions={handleOpenCommentReactions}
                           initialVisibleTopLevelComments={1}
