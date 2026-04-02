@@ -290,6 +290,7 @@ function findReactionById(reactionId) {
 }
 
 const MAX_ATTACHMENT_SIZE_BYTES = 8 * 1024 * 1024;
+const TIMELINE_POST_TOGGLE_MIN_LENGTH = 180;
 
 function formatFileSize(bytes) {
   if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
@@ -721,10 +722,14 @@ export function TimelinePost({
   const initialVisibleCount = Math.max(1, Number.parseInt(initialVisibleTopLevelComments, 10) || 2);
   const [visibleTopLevelComments, setVisibleTopLevelComments] = useState(initialVisibleCount);
   const [postReaction, setPostReaction] = useState(post.likes?.viewerReaction || null);
+  const [isPostTextExpanded, setIsPostTextExpanded] = useState(false);
   const commentImageInputRef = useRef(null);
 
   const authorName = post.author?.fullName || post.author || "Unknown";
   const visibilityLabel = post.visibility === "private" ? "Private" : "Public";
+  const postText = String(post.content || post.title || "").trim();
+  const shouldShowPostToggle =
+    postText.length > TIMELINE_POST_TOGGLE_MIN_LENGTH || postText.includes("\n");
   const topLevelComments = post.comments || [];
   const loadedHiddenTopLevelCount = Math.max(topLevelComments.length - visibleTopLevelComments, 0);
   const totalTopLevelCount = Number.isFinite(post.topLevelCommentCount)
@@ -754,6 +759,10 @@ export function TimelinePost({
   useEffect(() => {
     setPostReaction(post.likes?.viewerReaction || null);
   }, [post.likes?.viewerReaction]);
+
+  useEffect(() => {
+    setIsPostTextExpanded(false);
+  }, [post.id, post.content, post.title]);
 
   const handlePostReactionSelect = async (reactionId) => {
     if (post.likes?.likedByViewer && postReaction === reactionId) {
@@ -882,7 +891,24 @@ export function TimelinePost({
             </button>
           </div>
         </div>
-        <h4 className="_feed_inner_timeline_post_title">{post.content || post.title}</h4>
+        {postText ? (
+          <div className="timeline-post-copy">
+            <h4
+              className={`_feed_inner_timeline_post_title timeline-post-copy-text ${isPostTextExpanded ? "is-expanded" : "is-collapsed"}`}
+            >
+              {postText}
+            </h4>
+            {shouldShowPostToggle ? (
+              <button
+                type="button"
+                className="timeline-post-copy-toggle"
+                onClick={() => setIsPostTextExpanded((previous) => !previous)}
+              >
+                {isPostTextExpanded ? "See less" : "See more"}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
         {post.imageUrl || post.image ? (
           <div className="_feed_inner_timeline_image">
             <img src={post.imageUrl || post.image} alt="" className="_time_img" />
